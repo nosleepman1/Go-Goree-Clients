@@ -4,7 +4,7 @@ import {
   Text,
   FlatList,
   Pressable,
-  Dimensions,
+  useWindowDimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
@@ -13,8 +13,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { colors } from "@/constants/theme";
 import { PillButton } from "@/components/ui/PillButton";
-
-const { width } = Dimensions.get("window");
 
 type Slide = {
   key: string;
@@ -49,6 +47,7 @@ const slides: Slide[] = [
 ];
 
 export default function OnboardingScreen() {
+  const { width } = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const listRef = useRef<FlatList<Slide>>(null);
   const isLast = index === slides.length - 1;
@@ -96,6 +95,7 @@ export default function OnboardingScreen() {
 
       <FlatList
         ref={listRef}
+        style={{ flex: 1 }}
         data={slides}
         keyExtractor={(item) => item.key}
         horizontal
