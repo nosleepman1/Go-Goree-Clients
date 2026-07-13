@@ -7,18 +7,27 @@ import { router } from "expo-router";
 import { colors, gradients } from "@/constants/theme";
 import { Stepper } from "@/components/ui/Stepper";
 import { TripPickerModal } from "@/components/TripPickerModal";
-import { ROUTE, ADULT_PRICE, CHILD_PRICE, formatFcfa, TripDate } from "@/constants/trip";
+import {
+  ROUTE,
+  ADULT_PRICE,
+  CHILD_PRICE,
+  FOREIGNER_PRICE,
+  formatFcfa,
+  TripDate,
+} from "@/constants/trip";
 
-const AVAILABLE_SEATS = 150;
+const DEFAULT_SEATS = 150;
 
 export default function TicketsScreen() {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
+  const [foreigners, setForeigners] = useState(0);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [trip, setTrip] = useState<{ date: TripDate; time: string } | null>(null);
 
-  const total = adults * ADULT_PRICE + children * CHILD_PRICE;
-  const passengers = adults + children;
+  const total = adults * ADULT_PRICE + children * CHILD_PRICE + foreigners * FOREIGNER_PRICE;
+  const passengers = adults + children + foreigners;
+  const seatsAvailable = trip?.date.seatsAvailable ?? DEFAULT_SEATS;
 
   function handleConfirmTrip(selection: { date: TripDate; time: string }) {
     setTrip(selection);
@@ -35,6 +44,7 @@ export default function TicketsScreen() {
       params: {
         adults: String(adults),
         children: String(children),
+        foreigners: String(foreigners),
         total: String(total),
         date: `${trip.date.label} • ${trip.time}`,
       },
@@ -112,19 +122,45 @@ export default function TicketsScreen() {
 
         <Text style={[styles.label, { marginBottom: 12 }]}>Passagers</Text>
 
-        <View style={styles.passengerRow}>
-          <Text style={{ fontSize: 15, color: colors.textDark }}>Adulte</Text>
-          <Stepper value={adults} onChange={setAdults} min={1} />
-        </View>
-        <View style={[styles.passengerRow, { marginBottom: 20 }]}>
-          <Text style={{ fontSize: 15, color: colors.textDark }}>Enfant</Text>
-          <Stepper value={children} onChange={setChildren} min={0} />
+        <View style={{ gap: 12, marginBottom: 24 }}>
+          <View style={styles.passengerCard}>
+            <View style={styles.passengerIcon}>
+              <Ionicons name="happy-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.passengerLabel}>Enfant</Text>
+              <Text style={styles.passengerPrice}>{formatFcfa(CHILD_PRICE)}</Text>
+            </View>
+            <Stepper value={children} onChange={setChildren} min={0} />
+          </View>
+
+          <View style={styles.passengerCard}>
+            <View style={styles.passengerIcon}>
+              <Ionicons name="person-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.passengerLabel}>Adulte résident</Text>
+              <Text style={styles.passengerPrice}>{formatFcfa(ADULT_PRICE)}</Text>
+            </View>
+            <Stepper value={adults} onChange={setAdults} min={1} />
+          </View>
+
+          <View style={styles.passengerCard}>
+            <View style={styles.passengerIcon}>
+              <Ionicons name="globe-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.passengerLabel}>Étranger</Text>
+              <Text style={styles.passengerPrice}>{formatFcfa(FOREIGNER_PRICE)}</Text>
+            </View>
+            <Stepper value={foreigners} onChange={setForeigners} min={0} />
+          </View>
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 32 }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#22C55E" }} />
           <Text style={{ fontSize: 13, color: colors.textGray }}>
-            {AVAILABLE_SEATS} places disponibles
+            {seatsAvailable} places disponibles
           </Text>
         </View>
 
@@ -188,12 +224,31 @@ const styles = {
     fontWeight: "600" as const,
     color: colors.textDark,
   },
-  passengerRow: {
+  passengerCard: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    gap: 12,
+    backgroundColor: colors.inputBg,
+    borderRadius: 16,
+    padding: 12,
+  },
+  passengerIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  passengerLabel: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: colors.textDark,
+  },
+  passengerPrice: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: colors.primary,
+    marginTop: 1,
   },
 };

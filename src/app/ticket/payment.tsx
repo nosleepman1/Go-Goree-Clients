@@ -34,11 +34,13 @@ export default function PaymentScreen() {
   const params = useLocalSearchParams<{
     adults: string;
     children: string;
+    foreigners: string;
     total: string;
     date: string;
   }>();
   const adults = Number(params.adults ?? 1);
   const children = Number(params.children ?? 0);
+  const foreigners = Number(params.foreigners ?? 0);
   const total = Number(params.total ?? 0);
   const date = params.date ?? "";
 
@@ -48,6 +50,7 @@ export default function PaymentScreen() {
   function passengersLabel() {
     const parts = [`${adults} adulte${adults > 1 ? "s" : ""}`];
     if (children > 0) parts.push(`${children} enfant${children > 1 ? "s" : ""}`);
+    if (foreigners > 0) parts.push(`${foreigners} étranger${foreigners > 1 ? "s" : ""}`);
     return parts.join(", ");
   }
 

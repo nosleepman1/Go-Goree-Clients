@@ -3,8 +3,9 @@ export const ROUTE = {
   destination: "Île de Gorée",
 };
 
-export const ADULT_PRICE = 5500;
-export const CHILD_PRICE = 2750;
+export const CHILD_PRICE = 500;
+export const ADULT_PRICE = 1500;
+export const FOREIGNER_PRICE = 5000;
 
 export function formatFcfa(amount: number) {
   return `${amount.toLocaleString("fr-FR")} FCFA`;
@@ -54,9 +55,10 @@ export interface TripDate {
   dayNumber: number;
   monthShort: string;
   isToday: boolean;
+  seatsAvailable: number;
 }
 
-// TODO: remplacer par les jours disponibles renvoyés par l'API.
+// TODO: remplacer par les jours/places disponibles renvoyés par l'API.
 export function getUpcomingDates(count = 8): TripDate[] {
   const today = new Date();
   const dates: TripDate[] = [];
@@ -77,6 +79,7 @@ export function getUpcomingDates(count = 8): TripDate[] {
       dayNumber: d.getDate(),
       monthShort: MONTH_NAMES[d.getMonth()],
       isToday: i === 0,
+      seatsAvailable: 70 + ((d.getDate() * 13) % 80),
     });
   }
 

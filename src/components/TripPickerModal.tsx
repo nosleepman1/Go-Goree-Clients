@@ -109,30 +109,29 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
 
             <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}>
               {step === "date" ? (
-                <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+                <View>
                   {dates.map((date) => (
                     <Pressable
                       key={date.iso}
                       onPress={() => handlePickDate(date)}
                       style={({ pressed }) => ({
-                        width: "48%",
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 10,
+                        gap: 12,
                         backgroundColor: date.isToday ? "#EFF4FF" : colors.inputBg,
                         borderWidth: 1.5,
                         borderColor: date.isToday ? colors.primary : "transparent",
                         borderRadius: 16,
-                        padding: 10,
+                        padding: 12,
                         marginBottom: 12,
                         opacity: pressed ? 0.7 : 1,
                       })}
                     >
                       <View
                         style={{
-                          width: 42,
-                          height: 42,
-                          borderRadius: 12,
+                          width: 46,
+                          height: 46,
+                          borderRadius: 13,
                           backgroundColor: date.isToday ? colors.primary : colors.white,
                           alignItems: "center",
                           justifyContent: "center",
@@ -140,17 +139,17 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
                       >
                         <Text
                           style={{
-                            fontSize: 15,
+                            fontSize: 16,
                             fontWeight: "800",
                             color: date.isToday ? colors.white : colors.textDark,
-                            lineHeight: 17,
+                            lineHeight: 18,
                           }}
                         >
                           {date.dayNumber}
                         </Text>
                         <Text
                           style={{
-                            fontSize: 9,
+                            fontSize: 10,
                             fontWeight: "700",
                             color: date.isToday ? "rgba(255,255,255,0.85)" : colors.textGray,
                           }}
@@ -159,15 +158,21 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
                         </Text>
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text
-                          numberOfLines={1}
-                          style={{ fontSize: 13, fontWeight: "700", color: colors.textDark }}
-                        >
+                        <Text style={{ fontSize: 14, fontWeight: "700", color: colors.textDark }}>
                           {date.label}
                         </Text>
-                        <Text style={{ fontSize: 11, color: colors.textGray, marginTop: 1 }}>
+                        <Text style={{ fontSize: 12, color: colors.textGray, marginTop: 1 }}>
                           {date.weekday}
                         </Text>
+                      </View>
+                      <View style={{ alignItems: "flex-end", gap: 2 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#22C55E" }} />
+                          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textDark }}>
+                            {date.seatsAvailable}
+                          </Text>
+                        </View>
+                        <Text style={{ fontSize: 10, color: colors.textGray }}>places</Text>
                       </View>
                     </Pressable>
                   ))}
