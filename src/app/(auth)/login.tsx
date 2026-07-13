@@ -21,7 +21,7 @@ export default function LoginScreen() {
       setError(null);
       setLoading(true);
       await login({ email, password });
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/home");
     } catch (err) {
       setError((err as { message: string }).message ?? "Connexion impossible");
     } finally {

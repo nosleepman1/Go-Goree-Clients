@@ -1,7 +1,14 @@
 import React, { createContext, useEffect, useState } from "react";
 import { authService, LoginPayload } from "@/services/auth.service";
 import { storage } from "@/utils/storage";
+import { MOCK_AUTH } from "@/constants/config";
 import { User } from "@/types";
+
+const mockUser: User = {
+  id: "mock-user",
+  name: "Boubacar",
+  email: "boubacar@example.com",
+};
 
 interface AuthContextValue {
   user: User | null;
@@ -22,11 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const token = await storage.get("auth_token");
       if (token) {
-        try {
-          const me = await authService.me();
-          setUser(me);
-        } catch {
-          await storage.remove("auth_token");
+        if (MOCK_AUTH) {
+          setUser(mockUser);
+        } else {
+          try {
+            const me = await authService.me();
+            setUser(me);
+          } catch {
+            await storage.remove("auth_token");
+          }
         }
       }
       setIsLoading(false);
@@ -34,13 +45,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function login(payload: LoginPayload) {
+    if (MOCK_AUTH) {
+      await storage.set("auth_token", "mock-token");
+      setUser({ ...mockUser, email: payload.email || mockUser.email });
+      return;
+    }
     const { user: loggedInUser, token } = await authService.login(payload);
     await storage.set("auth_token", token);
     setUser(loggedInUser);
   }
 
   async function logout() {
-    await authService.logout();
+    if (!MOCK_AUTH) {
+      await authService.logout();
+    }
     await storage.remove("auth_token");
     setUser(null);
   }
