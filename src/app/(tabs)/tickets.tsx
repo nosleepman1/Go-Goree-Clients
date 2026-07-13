@@ -6,26 +6,37 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { colors, gradients } from "@/constants/theme";
 import { Stepper } from "@/components/ui/Stepper";
-import { ROUTE, ADULT_PRICE, CHILD_PRICE, formatFcfa } from "@/constants/trip";
+import { TripPickerModal } from "@/components/TripPickerModal";
+import { ROUTE, ADULT_PRICE, CHILD_PRICE, formatFcfa, TripDate } from "@/constants/trip";
 
-const TRAVEL_DATE = "Sam. 12 Juil. 2026";
 const AVAILABLE_SEATS = 150;
 
 export default function TicketsScreen() {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [trip, setTrip] = useState<{ date: TripDate; time: string } | null>(null);
 
   const total = adults * ADULT_PRICE + children * CHILD_PRICE;
   const passengers = adults + children;
 
+  function handleConfirmTrip(selection: { date: TripDate; time: string }) {
+    setTrip(selection);
+    setPickerVisible(false);
+  }
+
   function handlePay() {
+    if (!trip) {
+      setPickerVisible(true);
+      return;
+    }
     router.push({
       pathname: "/ticket/payment",
       params: {
         adults: String(adults),
         children: String(children),
         total: String(total),
-        date: TRAVEL_DATE,
+        date: `${trip.date.label} • ${trip.time}`,
       },
     });
   }
@@ -67,11 +78,37 @@ export default function TicketsScreen() {
           </View>
         </View>
 
-        <Text style={styles.label}>Date du voyage</Text>
-        <View style={[styles.field, { marginBottom: 24 }]}>
-          <Ionicons name="calendar-outline" size={18} color={colors.textGray} />
-          <Text style={styles.fieldText}>{TRAVEL_DATE}</Text>
-        </View>
+        <Text style={styles.label}>Voyage</Text>
+        <Pressable
+          onPress={() => setPickerVisible(true)}
+          style={[
+            styles.field,
+            {
+              marginBottom: 24,
+              justifyContent: "space-between",
+              backgroundColor: trip ? colors.inputBg : "#EFF4FF",
+              borderWidth: trip ? 0 : 1,
+              borderColor: colors.primary,
+            },
+          ]}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Ionicons
+              name="calendar-outline"
+              size={18}
+              color={trip ? colors.textGray : colors.primary}
+            />
+            <Text
+              style={[
+                styles.fieldText,
+                !trip && { color: colors.primary },
+              ]}
+            >
+              {trip ? `${trip.date.label} • ${trip.time}` : "Choisir le voyage"}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={trip ? colors.textGray : colors.primary} />
+        </Pressable>
 
         <Text style={[styles.label, { marginBottom: 12 }]}>Passagers</Text>
 
@@ -115,11 +152,17 @@ export default function TicketsScreen() {
             style={{ height: 54, borderRadius: 14, alignItems: "center", justifyContent: "center" }}
           >
             <Text style={{ fontSize: 16, fontWeight: "700", color: colors.white }}>
-              Payer {formatFcfa(total)}
+              {trip ? `Payer ${formatFcfa(total)}` : "Choisir le voyage pour continuer"}
             </Text>
           </LinearGradient>
         </Pressable>
       </ScrollView>
+
+      <TripPickerModal
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onConfirm={handleConfirmTrip}
+      />
     </SafeAreaView>
   );
 }
