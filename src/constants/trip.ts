@@ -50,6 +50,10 @@ const MONTH_NAMES = [
 export interface TripDate {
   iso: string;
   label: string;
+  weekday: string;
+  dayNumber: number;
+  monthShort: string;
+  isToday: boolean;
 }
 
 // TODO: remplacer par les jours disponibles renvoyés par l'API.
@@ -66,7 +70,14 @@ export function getUpcomingDates(count = 8): TripDate[] {
     else if (i === 1) label = "Demain";
     else label = `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
 
-    dates.push({ iso: d.toISOString().slice(0, 10), label });
+    dates.push({
+      iso: d.toISOString().slice(0, 10),
+      label,
+      weekday: DAY_NAMES[d.getDay()],
+      dayNumber: d.getDate(),
+      monthShort: MONTH_NAMES[d.getMonth()],
+      isToday: i === 0,
+    });
   }
 
   return dates;

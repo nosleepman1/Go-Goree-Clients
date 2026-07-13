@@ -45,9 +45,9 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
           onPress={(e) => e.stopPropagation()}
           style={{
             backgroundColor: colors.white,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            maxHeight: "75%",
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            maxHeight: "78%",
           }}
         >
           <SafeAreaView edges={["bottom"]}>
@@ -60,63 +60,145 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
                 flexDirection: "row",
                 alignItems: "center",
                 paddingHorizontal: 20,
-                paddingTop: 8,
-                paddingBottom: 16,
+                paddingTop: 12,
+                paddingBottom: 18,
               }}
             >
-              {step === "time" && (
-                <Pressable onPress={() => setStep("date")} hitSlop={12} style={{ marginRight: 12 }}>
-                  <Ionicons name="chevron-back" size={22} color={colors.textDark} />
+              {step === "time" ? (
+                <Pressable
+                  onPress={() => setStep("date")}
+                  hitSlop={12}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: colors.inputBg,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 12,
+                  }}
+                >
+                  <Ionicons name="chevron-back" size={20} color={colors.textDark} />
                 </Pressable>
+              ) : (
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: "#EFF4FF",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 12,
+                  }}
+                >
+                  <Ionicons name="calendar" size={18} color={colors.primary} />
+                </View>
               )}
               <View>
-                <Text style={{ fontSize: 17, fontWeight: "700", color: colors.textDark }}>
+                <Text style={{ fontSize: 17, fontWeight: "800", color: colors.textDark }}>
                   {step === "date" ? "Choisir une date" : "Choisir un horaire"}
                 </Text>
                 {step === "time" && selectedDate && (
-                  <Text style={{ fontSize: 13, color: colors.textGray, marginTop: 2 }}>
+                  <Text style={{ fontSize: 13, color: colors.primary, fontWeight: "600", marginTop: 2 }}>
                     {selectedDate.label}
                   </Text>
                 )}
               </View>
             </View>
 
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}>
-              {step === "date"
-                ? dates.map((date) => (
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}>
+              {step === "date" ? (
+                <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+                  {dates.map((date) => (
                     <Pressable
                       key={date.iso}
                       onPress={() => handlePickDate(date)}
-                      style={{
+                      style={({ pressed }) => ({
+                        width: "48%",
                         flexDirection: "row",
                         alignItems: "center",
-                        justifyContent: "space-between",
-                        paddingVertical: 16,
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border,
-                      }}
+                        gap: 10,
+                        backgroundColor: date.isToday ? "#EFF4FF" : colors.inputBg,
+                        borderWidth: 1.5,
+                        borderColor: date.isToday ? colors.primary : "transparent",
+                        borderRadius: 16,
+                        padding: 10,
+                        marginBottom: 12,
+                        opacity: pressed ? 0.7 : 1,
+                      })}
                     >
-                      <Text style={{ fontSize: 15, color: colors.textDark }}>{date.label}</Text>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textGray} />
+                      <View
+                        style={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: 12,
+                          backgroundColor: date.isToday ? colors.primary : colors.white,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            fontWeight: "800",
+                            color: date.isToday ? colors.white : colors.textDark,
+                            lineHeight: 17,
+                          }}
+                        >
+                          {date.dayNumber}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 9,
+                            fontWeight: "700",
+                            color: date.isToday ? "rgba(255,255,255,0.85)" : colors.textGray,
+                          }}
+                        >
+                          {date.monthShort}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          numberOfLines={1}
+                          style={{ fontSize: 13, fontWeight: "700", color: colors.textDark }}
+                        >
+                          {date.label}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: colors.textGray, marginTop: 1 }}>
+                          {date.weekday}
+                        </Text>
+                      </View>
                     </Pressable>
-                  ))
-                : TIME_SLOTS.map((time) => (
+                  ))}
+                </View>
+              ) : (
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+                  {TIME_SLOTS.map((time) => (
                     <Pressable
                       key={time}
                       onPress={() => handlePickTime(time)}
-                      style={{
-                        flexDirection: "row",
+                      style={({ pressed }) => ({
+                        width: "30%",
                         alignItems: "center",
-                        justifyContent: "space-between",
+                        justifyContent: "center",
+                        gap: 6,
                         paddingVertical: 16,
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border,
-                      }}
+                        borderRadius: 16,
+                        backgroundColor: colors.inputBg,
+                        borderWidth: 1.5,
+                        borderColor: "transparent",
+                        opacity: pressed ? 0.7 : 1,
+                      })}
                     >
-                      <Text style={{ fontSize: 15, color: colors.textDark }}>{time}</Text>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textGray} />
+                      <Ionicons name="time-outline" size={18} color={colors.primary} />
+                      <Text style={{ fontSize: 14, fontWeight: "700", color: colors.textDark }}>
+                        {time}
+                      </Text>
                     </Pressable>
                   ))}
+                </View>
+              )}
             </ScrollView>
           </SafeAreaView>
         </Pressable>
