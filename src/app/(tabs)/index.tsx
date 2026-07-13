@@ -4,10 +4,10 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 items-center justify-center bg-white">
       <Text className="text-2xl font-bold text-slate-900">
-        Go Goree Clients
+        Go Goree
       </Text>
       <Text className="mt-2 text-slate-500">
-        Expo Router + NativeWind sont prêts.
+        Let's cook!
       </Text>
     </View>
   );
