@@ -7,9 +7,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { colors, gradients } from "@/constants/theme";
 import { ROUTE, formatFcfa } from "@/constants/trip";
 import { useWallet } from "@/hooks/useWallet";
+import { payViaPaydunya, PaydunyaMethod } from "@/services/paydunya.service";
 
 type PaymentMethod = {
-  id: string;
+  id: PaydunyaMethod | "wallet";
   label: string;
   badgeColor: string;
   badgeText: string;
@@ -24,31 +25,21 @@ const methods: PaymentMethod[] = [
 
 export default function PaymentScreen() {
   const params = useLocalSearchParams<{
-    adults: string;
-    children: string;
-    foreigners: string;
+    passengerLabel: string;
     total: string;
     date: string;
   }>();
-  const adults = Number(params.adults ?? 1);
-  const children = Number(params.children ?? 0);
-  const foreigners = Number(params.foreigners ?? 0);
+  const passengerLabel = params.passengerLabel ?? "Adulte résident";
   const total = Number(params.total ?? 0);
   const date = params.date ?? "";
+  const passengers = `1 ${passengerLabel}`;
 
-  const [selected, setSelected] = useState<string>("wave");
+  const [selected, setSelected] = useState<PaymentMethod["id"]>("wave");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const wallet = useWallet();
 
-  function passengersLabel() {
-    const parts = [`${adults} adulte${adults > 1 ? "s" : ""}`];
-    if (children > 0) parts.push(`${children} enfant${children > 1 ? "s" : ""}`);
-    if (foreigners > 0) parts.push(`${foreigners} étranger${foreigners > 1 ? "s" : ""}`);
-    return parts.join(", ");
-  }
-
-  function handlePay() {
+  async function handlePay() {
     setError(null);
 
     if (selected === "wallet" && total > wallet.balance) {
@@ -57,16 +48,24 @@ export default function PaymentScreen() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
       if (selected === "wallet") {
         wallet.pay(total, `Billet ${ROUTE.departure} ↔ ${ROUTE.destination}`);
+      } else {
+        const result = await payViaPaydunya(selected, total);
+        if (!result.success) {
+          setError("Le paiement a échoué. Veuillez réessayer.");
+          setLoading(false);
+          return;
+        }
       }
       router.replace({
         pathname: "/ticket/confirmation",
-        params: { total: String(total), date, passengers: passengersLabel() },
+        params: { total: String(total), date, passengers },
       });
-    }, 900);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -113,7 +112,7 @@ export default function PaymentScreen() {
             </Text>
           </View>
           <Text style={{ fontSize: 13, color: colors.textGray }}>
-            {date} • {passengersLabel()} • Aller-Retour
+            {date} • {passengers} • Aller-Retour
           </Text>
         </View>
 
@@ -166,7 +165,9 @@ export default function PaymentScreen() {
                     <Text style={{ fontSize: 12, color: colors.textGray }}>
                       Solde: {formatFcfa(wallet.balance)}
                     </Text>
-                  ) : null}
+                  ) : (
+                    <Text style={{ fontSize: 11, color: colors.textGray }}>via Paydunya</Text>
+                  )}
                 </View>
                 <View
                   style={{

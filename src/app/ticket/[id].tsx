@@ -1,6 +1,7 @@
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import QRCode from "react-native-qrcode-svg";
 import { router, useLocalSearchParams } from "expo-router";
 import { colors } from "@/constants/theme";
 import { useTickets } from "@/hooks/useTickets";
@@ -86,7 +87,14 @@ export default function TicketDetailScreen() {
               marginBottom: 20,
             }}
           >
-            <Ionicons name="qr-code" size={160} color={colors.textDark} />
+            <QRCode
+              value={ticket.qrToken}
+              size={160}
+              logo={require("../../../assets/logo.png")}
+              logoSize={38}
+              logoBorderRadius={19}
+              logoBackgroundColor={colors.white}
+            />
           </View>
 
           <Text style={{ fontSize: 12, color: colors.textGray, marginBottom: 4 }}>

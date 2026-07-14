@@ -25,11 +25,7 @@ export function PillButton({
         fontSize: 16,
         fontWeight: "700",
         color:
-          variant === "white"
-            ? colors.primary
-            : variant === "outline"
-            ? colors.textDark
-            : colors.white,
+          variant === "white" || variant === "outline" ? colors.primary : colors.white,
       }}
     >
       {label}
@@ -67,8 +63,8 @@ export function PillButton({
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: variant === "white" ? colors.white : "transparent",
-          borderWidth: variant === "outline" ? 1 : 0,
-          borderColor: colors.border,
+          borderWidth: variant === "outline" ? 1.5 : 0,
+          borderColor: colors.primary,
           opacity: disabled ? 0.6 : 1,
         },
         style,

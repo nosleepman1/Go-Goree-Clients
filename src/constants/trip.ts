@@ -7,21 +7,40 @@ export const CHILD_PRICE = 500;
 export const ADULT_PRICE = 1500;
 export const FOREIGNER_PRICE = 5000;
 
+export type PassengerTypeId = "enfant" | "adulte" | "etranger";
+
+export interface PassengerType {
+  id: PassengerTypeId;
+  label: string;
+  price: number;
+  icon: "happy-outline" | "person-outline" | "globe-outline";
+}
+
+export const PASSENGER_TYPES: PassengerType[] = [
+  { id: "enfant", label: "Enfant", price: CHILD_PRICE, icon: "happy-outline" },
+  { id: "adulte", label: "Adulte résident", price: ADULT_PRICE, icon: "person-outline" },
+  { id: "etranger", label: "Étranger", price: FOREIGNER_PRICE, icon: "globe-outline" },
+];
+
 export function formatFcfa(amount: number) {
   return `${amount.toLocaleString("fr-FR")} FCFA`;
 }
 
-// TODO: remplacer par les créneaux renvoyés par l'API (dépendent du jour choisi).
-export const TIME_SLOTS = [
-  "07h00",
-  "08h30",
-  "10h00",
-  "11h00",
-  "12h00",
-  "14h30",
-  "16h00",
-  "17h30",
-];
+export interface TimeSlot {
+  time: string;
+  seatsAvailable: number;
+}
+
+// TODO: remplacer par les créneaux + places renvoyés par l'API (dépendent du jour ET du trajet choisi).
+const TIME_STRINGS = ["07h00", "08h30", "10h00", "11h00", "12h00", "14h30", "16h00", "17h30"];
+
+export function getTimeSlots(dateIso: string): TimeSlot[] {
+  const seed = dateIso.split("-").reduce((sum, part) => sum + Number(part), 0);
+  return TIME_STRINGS.map((time, i) => ({
+    time,
+    seatsAvailable: 20 + ((seed + i * 17) % 130),
+  }));
+}
 
 const DAY_NAMES = [
   "Dimanche",
@@ -55,10 +74,9 @@ export interface TripDate {
   dayNumber: number;
   monthShort: string;
   isToday: boolean;
-  seatsAvailable: number;
 }
 
-// TODO: remplacer par les jours/places disponibles renvoyés par l'API.
+// TODO: remplacer par les jours disponibles renvoyés par l'API.
 export function getUpcomingDates(count = 8): TripDate[] {
   const today = new Date();
   const dates: TripDate[] = [];
@@ -79,7 +97,6 @@ export function getUpcomingDates(count = 8): TripDate[] {
       dayNumber: d.getDate(),
       monthShort: MONTH_NAMES[d.getMonth()],
       isToday: i === 0,
-      seatsAvailable: 70 + ((d.getDate() * 13) % 80),
     });
   }
 

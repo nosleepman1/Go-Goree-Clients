@@ -13,6 +13,7 @@ export type TicketStatus = "valide" | "utilisé" | "expiré";
 
 export interface Ticket {
   id: string;
+  qrToken: string;
   departure: string;
   destination: string;
   dateLabel: string;
