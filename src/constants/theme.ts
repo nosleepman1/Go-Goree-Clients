@@ -1,7 +1,8 @@
 export const colors = {
-  primary: "#2F6FED",
-  primaryDark: "#1D4FD6",
-  primaryLight: "#5B93F5",
+  primary: "#0B5ED7",
+  primaryDark: "#0B5ED7",
+  primaryLight: "#4EA8DE",
+  primaryTint: "#EAF3FC",
   white: "#FFFFFF",
   textDark: "#111827",
   textGray: "#6B7280",
@@ -11,5 +12,5 @@ export const colors = {
 } as const;
 
 export const gradients = {
-  primary: [colors.primaryDark, colors.primary, colors.primaryLight] as const,
+  primary: [colors.primaryLight, colors.primaryDark] as const,
 };

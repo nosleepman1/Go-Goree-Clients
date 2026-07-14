@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#EFF4FF",
+    backgroundColor: colors.primaryTint,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   dateRowToday: {
-    backgroundColor: "#EFF4FF",
+    backgroundColor: colors.primaryTint,
     borderColor: colors.primary,
   },
   dateBadge: {

@@ -96,7 +96,7 @@ export default function NewTicketScreen() {
             {
               marginBottom: 24,
               justifyContent: "space-between",
-              backgroundColor: trip ? colors.inputBg : "#EFF4FF",
+              backgroundColor: trip ? colors.inputBg : colors.primaryTint,
               borderWidth: trip ? 0 : 1,
               borderColor: colors.primary,
             },
@@ -220,7 +220,7 @@ const styles = {
     borderColor: "transparent",
   },
   passengerCardSelected: {
-    backgroundColor: "#EFF4FF",
+    backgroundColor: colors.primaryTint,
     borderColor: colors.primary,
   },
   passengerIcon: {

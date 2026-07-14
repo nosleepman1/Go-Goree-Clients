@@ -133,28 +133,28 @@ export default function ProfileScreen() {
         <MenuRow
           icon="notifications-outline"
           iconColor={colors.primary}
-          iconBg="#EFF4FF"
+          iconBg={colors.primaryTint}
           label="Notifications"
           onPress={() => router.push("/notifications")}
         />
         <MenuRow
           icon="settings-outline"
           iconColor={colors.primary}
-          iconBg="#EFF4FF"
+          iconBg={colors.primaryTint}
           label="Réglages"
           onPress={() => router.push("/settings")}
         />
         <MenuRow
           icon="ticket-outline"
           iconColor={colors.primary}
-          iconBg="#EFF4FF"
+          iconBg={colors.primaryTint}
           label="Mes billets"
           onPress={() => router.push("/(tabs)/tickets")}
         />
         <MenuRow
           icon="wallet-outline"
           iconColor={colors.primary}
-          iconBg="#EFF4FF"
+          iconBg={colors.primaryTint}
           label="Wallet"
           onPress={() => router.push("/(tabs)/wallet")}
         />

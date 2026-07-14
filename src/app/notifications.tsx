@@ -32,7 +32,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     id: "2",
     icon: "boat",
     iconColor: colors.primary,
-    iconBg: "#EFF4FF",
+    iconBg: colors.primaryTint,
     title: "Départ imminent",
     message: "Votre chaloupe part dans 30 minutes. Présentez votre QR Code à l'embarquement.",
     time: "Il y a 5h",
@@ -42,7 +42,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     id: "3",
     icon: "wallet",
     iconColor: colors.primary,
-    iconBg: "#EFF4FF",
+    iconBg: colors.primaryTint,
     title: "Portefeuille rechargé",
     message: "Votre wallet a été crédité de 20 000 FCFA via Orange Money.",
     time: "Hier",
@@ -97,11 +97,11 @@ export default function NotificationsScreen() {
             style={{
               flexDirection: "row",
               alignItems: "flex-start",
-              backgroundColor: item.read ? colors.white : "#EFF4FF",
+              backgroundColor: item.read ? colors.white : colors.primaryTint,
               borderRadius: 16,
               padding: 14,
               borderWidth: 1,
-              borderColor: item.read ? colors.border : "#DBE7FE",
+              borderColor: item.read ? colors.border : colors.primaryLight,
             }}
           >
             <View
