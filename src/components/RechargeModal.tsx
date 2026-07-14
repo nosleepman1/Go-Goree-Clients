@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#EFF4FF",
+    backgroundColor: colors.primaryTint,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   amountChipSelected: {
-    backgroundColor: "#EFF4FF",
+    backgroundColor: colors.primaryTint,
     borderColor: colors.primary,
   },
   amountChipText: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   methodRowSelected: {
     borderColor: colors.primary,
-    backgroundColor: "#EFF4FF",
+    backgroundColor: colors.primaryTint,
   },
   methodBadge: {
     width: 38,

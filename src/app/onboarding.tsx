@@ -111,7 +111,7 @@ export default function OnboardingScreen() {
                 height: width - 96,
                 borderRadius: 24,
                 backgroundColor:
-                  item.bg === "blue" ? "rgba(255,255,255,0.15)" : "#EAF1FE",
+                  item.bg === "blue" ? "rgba(255,255,255,0.15)" : colors.primaryTint,
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 40,

@@ -190,7 +190,7 @@ export default function TicketsScreen() {
               width: 96,
               height: 96,
               borderRadius: 48,
-              backgroundColor: "#EFF4FF",
+              backgroundColor: colors.primaryTint,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 20,

@@ -137,7 +137,7 @@ export default function PaymentScreen() {
                   borderRadius: 14,
                   borderWidth: 1.5,
                   borderColor: isSelected ? colors.primary : colors.border,
-                  backgroundColor: isSelected ? "#EFF4FF" : colors.white,
+                  backgroundColor: isSelected ? colors.primaryTint : colors.white,
                   marginBottom: 12,
                 }}
               >
