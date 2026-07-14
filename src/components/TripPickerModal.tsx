@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, View, Text, Pressable, ScrollView } from "react-native";
+import { Modal, View, Text, Pressable, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
@@ -37,173 +37,85 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable
-        style={{ flex: 1, backgroundColor: "rgba(17,24,39,0.5)", justifyContent: "flex-end" }}
-        onPress={onClose}
-      >
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          style={{
-            backgroundColor: colors.white,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            maxHeight: "78%",
-          }}
-        >
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable onPress={(e) => e.stopPropagation()} style={styles.sheet}>
           <SafeAreaView edges={["bottom"]}>
-            <View style={{ alignItems: "center", paddingTop: 10, paddingBottom: 4 }}>
-              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+            <View style={styles.handleWrap}>
+              <View style={styles.handle} />
             </View>
 
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 20,
-                paddingTop: 12,
-                paddingBottom: 18,
-              }}
-            >
+            <View style={styles.header}>
               {step === "time" ? (
-                <Pressable
+                <TouchableOpacity
                   onPress={() => setStep("date")}
                   hitSlop={12}
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: colors.inputBg,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 12,
-                  }}
+                  activeOpacity={0.7}
+                  style={styles.headerIconBtn}
                 >
                   <Ionicons name="chevron-back" size={20} color={colors.textDark} />
-                </Pressable>
+                </TouchableOpacity>
               ) : (
-                <View
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: "#EFF4FF",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 12,
-                  }}
-                >
+                <View style={styles.headerIconBadge}>
                   <Ionicons name="calendar" size={18} color={colors.primary} />
                 </View>
               )}
               <View>
-                <Text style={{ fontSize: 17, fontWeight: "800", color: colors.textDark }}>
+                <Text style={styles.headerTitle}>
                   {step === "date" ? "Choisir une date" : "Choisir un horaire"}
                 </Text>
                 {step === "time" && selectedDate && (
-                  <Text style={{ fontSize: 13, color: colors.primary, fontWeight: "600", marginTop: 2 }}>
-                    {selectedDate.label}
-                  </Text>
+                  <Text style={styles.headerSubtitle}>{selectedDate.label}</Text>
                 )}
               </View>
             </View>
 
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}>
-              {step === "date" ? (
-                <View>
-                  {dates.map((date) => (
-                    <Pressable
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              {step === "date"
+                ? dates.map((date) => (
+                    <TouchableOpacity
                       key={date.iso}
+                      activeOpacity={0.7}
                       onPress={() => handlePickDate(date)}
-                      style={({ pressed }) => ({
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 12,
-                        backgroundColor: date.isToday ? "#EFF4FF" : colors.inputBg,
-                        borderWidth: 1.5,
-                        borderColor: date.isToday ? colors.primary : "transparent",
-                        borderRadius: 16,
-                        padding: 12,
-                        marginBottom: 12,
-                        opacity: pressed ? 0.7 : 1,
-                      })}
+                      style={[styles.dateRow, date.isToday && styles.dateRowToday]}
                     >
-                      <View
-                        style={{
-                          width: 46,
-                          height: 46,
-                          borderRadius: 13,
-                          backgroundColor: date.isToday ? colors.primary : colors.white,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 16,
-                            fontWeight: "800",
-                            color: date.isToday ? colors.white : colors.textDark,
-                            lineHeight: 18,
-                          }}
-                        >
+                      <View style={[styles.dateBadge, date.isToday && styles.dateBadgeToday]}>
+                        <Text style={[styles.dateBadgeNum, date.isToday && styles.dateBadgeTextToday]}>
                           {date.dayNumber}
                         </Text>
-                        <Text
-                          style={{
-                            fontSize: 10,
-                            fontWeight: "700",
-                            color: date.isToday ? "rgba(255,255,255,0.85)" : colors.textGray,
-                          }}
-                        >
+                        <Text style={[styles.dateBadgeMonth, date.isToday && styles.dateBadgeTextToday]}>
                           {date.monthShort}
                         </Text>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: "700", color: colors.textDark }}>
-                          {date.label}
-                        </Text>
-                        <Text style={{ fontSize: 12, color: colors.textGray, marginTop: 1 }}>
-                          {date.weekday}
-                        </Text>
+
+                      <View style={styles.dateInfo}>
+                        <Text style={styles.dateLabel}>{date.label}</Text>
+                        <Text style={styles.dateWeekday}>{date.weekday}</Text>
                       </View>
-                      <View style={{ alignItems: "flex-end", gap: 2 }}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#22C55E" }} />
-                          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textDark }}>
-                            {date.seatsAvailable}
-                          </Text>
+
+                      <View style={styles.seatsBlock}>
+                        <View style={styles.seatsRow}>
+                          <View style={styles.seatsDot} />
+                          <Text style={styles.seatsNum}>{date.seatsAvailable}</Text>
                         </View>
-                        <Text style={{ fontSize: 10, color: colors.textGray }}>places</Text>
+                        <Text style={styles.seatsLabel}>places</Text>
                       </View>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : (
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-                  {TIME_SLOTS.map((time) => (
-                    <Pressable
-                      key={time}
-                      onPress={() => handlePickTime(time)}
-                      style={({ pressed }) => ({
-                        width: "30%",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6,
-                        paddingVertical: 16,
-                        borderRadius: 16,
-                        backgroundColor: colors.inputBg,
-                        borderWidth: 1.5,
-                        borderColor: "transparent",
-                        opacity: pressed ? 0.7 : 1,
-                      })}
-                    >
-                      <Ionicons name="time-outline" size={18} color={colors.primary} />
-                      <Text style={{ fontSize: 14, fontWeight: "700", color: colors.textDark }}>
-                        {time}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
+                    </TouchableOpacity>
+                  ))
+                : (
+                    <View style={styles.timeGrid}>
+                      {TIME_SLOTS.map((time) => (
+                        <TouchableOpacity
+                          key={time}
+                          activeOpacity={0.7}
+                          onPress={() => handlePickTime(time)}
+                          style={styles.timeChip}
+                        >
+                          <Ionicons name="time-outline" size={18} color={colors.primary} />
+                          <Text style={styles.timeChipText}>{time}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
             </ScrollView>
           </SafeAreaView>
         </Pressable>
@@ -211,3 +123,165 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(17,24,39,0.5)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: "78%",
+  },
+  handleWrap: {
+    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 18,
+  },
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.inputBg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  headerIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#EFF4FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: colors.textDark,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+  },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.inputBg,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+  },
+  dateRowToday: {
+    backgroundColor: "#EFF4FF",
+    borderColor: colors.primary,
+  },
+  dateBadge: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  dateBadgeToday: {
+    backgroundColor: colors.primary,
+  },
+  dateBadgeNum: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.textDark,
+    lineHeight: 18,
+  },
+  dateBadgeMonth: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.textGray,
+  },
+  dateBadgeTextToday: {
+    color: colors.white,
+  },
+  dateInfo: {
+    flex: 1,
+  },
+  dateLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textDark,
+  },
+  dateWeekday: {
+    fontSize: 12,
+    color: colors.textGray,
+    marginTop: 1,
+  },
+  seatsBlock: {
+    alignItems: "flex-end",
+  },
+  seatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  seatsDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#22C55E",
+    marginRight: 4,
+  },
+  seatsNum: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.textDark,
+  },
+  seatsLabel: {
+    fontSize: 10,
+    color: colors.textGray,
+    marginTop: 2,
+  },
+  timeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  timeChip: {
+    width: "31%",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: colors.inputBg,
+    marginBottom: 12,
+  },
+  timeChipText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textDark,
+    marginTop: 6,
+  },
+});

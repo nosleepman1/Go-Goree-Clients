@@ -11,7 +11,7 @@ interface StepperProps {
 
 export function Stepper({ value, onChange, min = 0, max = 20 }: StepperProps) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
       <Pressable
         disabled={value <= min}
         onPress={() => onChange(Math.max(min, value - 1))}
@@ -27,7 +27,16 @@ export function Stepper({ value, onChange, min = 0, max = 20 }: StepperProps) {
       >
         <Ionicons name="remove" size={16} color={colors.textDark} />
       </Pressable>
-      <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textDark, minWidth: 16, textAlign: "center" }}>
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: "700",
+          color: colors.textDark,
+          minWidth: 16,
+          textAlign: "center",
+          marginHorizontal: 14,
+        }}
+      >
         {value}
       </Text>
       <Pressable

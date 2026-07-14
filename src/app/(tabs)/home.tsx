@@ -99,8 +99,8 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 16 }}>
-            <Ionicons name="people-outline" size={16} color={colors.textGray} />
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+            <Ionicons name="people-outline" size={16} color={colors.textGray} style={{ marginRight: 6 }} />
             <Text style={{ fontSize: 13, color: colors.textGray }}>
               45 places disponibles
             </Text>
@@ -144,9 +144,9 @@ export default function HomeScreen() {
               marginBottom: 14,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Ionicons name="boat" size={18} color={colors.primary} />
-              <Text style={{ fontSize: 14, fontWeight: "700", color: colors.textDark }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="boat" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: "700", color: colors.textDark, marginRight: 8 }}>
                 GO GOREE
               </Text>
               <Text style={{ fontSize: 13, color: colors.textGray }}>
@@ -157,14 +157,21 @@ export default function HomeScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 4,
                 backgroundColor: "#DCFCE7",
                 paddingHorizontal: 8,
                 paddingVertical: 3,
                 borderRadius: 10,
               }}
             >
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#22C55E" }} />
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "#22C55E",
+                  marginRight: 4,
+                }}
+              />
               <Text style={{ fontSize: 11, fontWeight: "700", color: "#16A34A" }}>Live</Text>
             </View>
           </View>
@@ -177,8 +184,8 @@ export default function HomeScreen() {
               marginBottom: 10,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textDark }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textDark, marginRight: 6 }}>
                 Dakar → Gorée
               </Text>
               <Ionicons name="arrow-forward" size={14} color={colors.textGray} />

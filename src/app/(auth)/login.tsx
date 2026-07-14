@@ -67,16 +67,18 @@ export default function LoginScreen() {
                 Connexion
               </Text>
 
-              <View style={{ gap: 14 }}>
-                <TextField
-                  icon="mail-outline"
-                  variant="onBlue"
-                  placeholder="Email"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={setEmail}
-                />
+              <View>
+                <View style={{ marginBottom: 14 }}>
+                  <TextField
+                    icon="mail-outline"
+                    variant="onBlue"
+                    placeholder="Email"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </View>
                 <TextField
                   icon="lock-closed-outline"
                   variant="onBlue"
@@ -110,8 +112,10 @@ export default function LoginScreen() {
                 <View style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.25)" }} />
               </View>
 
-              <View style={{ gap: 12 }}>
-                <SocialButton label="Continuer avec Google" icon="logo-google" />
+              <View>
+                <View style={{ marginBottom: 12 }}>
+                  <SocialButton label="Continuer avec Google" icon="logo-google" />
+                </View>
                 <SocialButton label="Continuer avec Apple" icon="logo-apple" />
               </View>
             </View>
