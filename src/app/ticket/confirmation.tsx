@@ -1,29 +1,33 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import QRCode from "react-native-qrcode-svg";
 import { router, useLocalSearchParams } from "expo-router";
 import { colors } from "@/constants/theme";
 import { PillButton } from "@/components/ui/PillButton";
 import { ROUTE, formatFcfa } from "@/constants/trip";
 import { useTickets } from "@/hooks/useTickets";
+import { Ticket } from "@/types";
 
 export default function ConfirmationScreen() {
   const params = useLocalSearchParams<{ total: string; date: string; passengers: string }>();
   const total = Number(params.total ?? 0);
   const { addTicket } = useTickets();
   const hasAdded = useRef(false);
+  const [ticket, setTicket] = useState<Ticket | null>(null);
 
   useEffect(() => {
     if (hasAdded.current) return;
     hasAdded.current = true;
-    addTicket({
+    const created = addTicket({
       departure: ROUTE.departure,
       destination: ROUTE.destination,
       dateLabel: params.date ?? "",
       passengersLabel: params.passengers ?? "",
       total,
     });
+    setTicket(created);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -68,7 +72,20 @@ export default function ConfirmationScreen() {
             marginBottom: 32,
           }}
         >
-          <Ionicons name="qr-code" size={120} color={colors.textDark} />
+          <View style={{ backgroundColor: colors.white, padding: 12, borderRadius: 16 }}>
+            {ticket ? (
+              <QRCode
+                value={ticket.qrToken}
+                size={140}
+                logo={require("../../../assets/logo.png")}
+                logoSize={34}
+                logoBorderRadius={17}
+                logoBackgroundColor={colors.white}
+              />
+            ) : (
+              <View style={{ width: 140, height: 140 }} />
+            )}
+          </View>
           <Text style={{ fontSize: 15, fontWeight: "700", color: colors.textDark, marginTop: 16 }}>
             {ROUTE.departure} ↔ {ROUTE.destination}
           </Text>

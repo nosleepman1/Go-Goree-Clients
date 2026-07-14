@@ -3,7 +3,7 @@ import { Modal, View, Text, Pressable, TouchableOpacity, ScrollView, StyleSheet 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
-import { getUpcomingDates, TIME_SLOTS, TripDate } from "@/constants/trip";
+import { getUpcomingDates, getTimeSlots, TripDate } from "@/constants/trip";
 
 interface TripPickerModalProps {
   visible: boolean;
@@ -17,6 +17,7 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
   const [step, setStep] = useState<Step>("date");
   const [selectedDate, setSelectedDate] = useState<TripDate | null>(null);
   const dates = getUpcomingDates(8);
+  const timeSlots = selectedDate ? getTimeSlots(selectedDate.iso) : [];
 
   useEffect(() => {
     if (visible) {
@@ -92,26 +93,29 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
                         <Text style={styles.dateWeekday}>{date.weekday}</Text>
                       </View>
 
-                      <View style={styles.seatsBlock}>
-                        <View style={styles.seatsRow}>
-                          <View style={styles.seatsDot} />
-                          <Text style={styles.seatsNum}>{date.seatsAvailable}</Text>
-                        </View>
-                        <Text style={styles.seatsLabel}>places</Text>
-                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={colors.textGray} />
                     </TouchableOpacity>
                   ))
                 : (
-                    <View style={styles.timeGrid}>
-                      {TIME_SLOTS.map((time) => (
+                    <View>
+                      {timeSlots.map((slot) => (
                         <TouchableOpacity
-                          key={time}
+                          key={slot.time}
                           activeOpacity={0.7}
-                          onPress={() => handlePickTime(time)}
-                          style={styles.timeChip}
+                          onPress={() => handlePickTime(slot.time)}
+                          style={styles.timeRow}
                         >
-                          <Ionicons name="time-outline" size={18} color={colors.primary} />
-                          <Text style={styles.timeChipText}>{time}</Text>
+                          <View style={styles.timeIconBadge}>
+                            <Ionicons name="time-outline" size={18} color={colors.primary} />
+                          </View>
+                          <Text style={styles.timeLabel}>{slot.time}</Text>
+                          <View style={styles.seatsBlock}>
+                            <View style={styles.seatsRow}>
+                              <View style={styles.seatsDot} />
+                              <Text style={styles.seatsNum}>{slot.seatsAvailable}</Text>
+                            </View>
+                            <Text style={styles.seatsLabel}>places</Text>
+                          </View>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -240,6 +244,29 @@ const styles = StyleSheet.create({
     color: colors.textGray,
     marginTop: 1,
   },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.inputBg,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+  },
+  timeIconBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  timeLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.textDark,
+  },
   seatsBlock: {
     alignItems: "flex-end",
   },
@@ -263,25 +290,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textGray,
     marginTop: 2,
-  },
-  timeGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  timeChip: {
-    width: "31%",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: colors.inputBg,
-    marginBottom: 12,
-  },
-  timeChipText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.textDark,
-    marginTop: 6,
   },
 });

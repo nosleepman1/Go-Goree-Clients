@@ -5,29 +5,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { colors, gradients } from "@/constants/theme";
-import { Stepper } from "@/components/ui/Stepper";
 import { TripPickerModal } from "@/components/TripPickerModal";
-import {
-  ROUTE,
-  ADULT_PRICE,
-  CHILD_PRICE,
-  FOREIGNER_PRICE,
-  formatFcfa,
-  TripDate,
-} from "@/constants/trip";
+import { ROUTE, PASSENGER_TYPES, PassengerTypeId, formatFcfa, TripDate } from "@/constants/trip";
 
-const DEFAULT_SEATS = 150;
-
-export default function TicketsScreen() {
-  const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
-  const [foreigners, setForeigners] = useState(0);
+export default function NewTicketScreen() {
+  const [passengerType, setPassengerType] = useState<PassengerTypeId>("adulte");
   const [pickerVisible, setPickerVisible] = useState(false);
   const [trip, setTrip] = useState<{ date: TripDate; time: string } | null>(null);
 
-  const total = adults * ADULT_PRICE + children * CHILD_PRICE + foreigners * FOREIGNER_PRICE;
-  const passengers = adults + children + foreigners;
-  const seatsAvailable = trip?.date.seatsAvailable ?? DEFAULT_SEATS;
+  const selected = PASSENGER_TYPES.find((p) => p.id === passengerType)!;
 
   function handleConfirmTrip(selection: { date: TripDate; time: string }) {
     setTrip(selection);
@@ -42,10 +28,8 @@ export default function TicketsScreen() {
     router.push({
       pathname: "/ticket/payment",
       params: {
-        adults: String(adults),
-        children: String(children),
-        foreigners: String(foreigners),
-        total: String(total),
+        passengerLabel: selected.label,
+        total: String(selected.price),
         date: `${trip.date.label} • ${trip.time}`,
       },
     });
@@ -125,68 +109,48 @@ export default function TicketsScreen() {
               color={trip ? colors.textGray : colors.primary}
               style={{ marginRight: 10 }}
             />
-            <Text
-              style={[
-                styles.fieldText,
-                !trip && { color: colors.primary },
-              ]}
-            >
+            <Text style={[styles.fieldText, !trip && { color: colors.primary }]}>
               {trip ? `${trip.date.label} • ${trip.time}` : "Choisir le voyage"}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={trip ? colors.textGray : colors.primary} />
         </Pressable>
 
-        <Text style={[styles.label, { marginBottom: 12 }]}>Passagers</Text>
+        <Text style={[styles.label, { marginBottom: 4 }]}>Passager</Text>
+        <Text style={{ fontSize: 12, color: colors.textGray, marginBottom: 12 }}>
+          Ce billet est valable pour 1 personne.
+        </Text>
 
-        <View style={{ marginBottom: 24 }}>
-          <View style={[styles.passengerCard, { marginBottom: 12 }]}>
-            <View style={styles.passengerIcon}>
-              <Ionicons name="happy-outline" size={20} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.passengerLabel}>Enfant</Text>
-              <Text style={styles.passengerPrice}>{formatFcfa(CHILD_PRICE)}</Text>
-            </View>
-            <Stepper value={children} onChange={setChildren} min={0} />
-          </View>
-
-          <View style={[styles.passengerCard, { marginBottom: 12 }]}>
-            <View style={styles.passengerIcon}>
-              <Ionicons name="person-outline" size={20} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.passengerLabel}>Adulte résident</Text>
-              <Text style={styles.passengerPrice}>{formatFcfa(ADULT_PRICE)}</Text>
-            </View>
-            <Stepper value={adults} onChange={setAdults} min={1} />
-          </View>
-
-          <View style={styles.passengerCard}>
-            <View style={styles.passengerIcon}>
-              <Ionicons name="globe-outline" size={20} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.passengerLabel}>Étranger</Text>
-              <Text style={styles.passengerPrice}>{formatFcfa(FOREIGNER_PRICE)}</Text>
-            </View>
-            <Stepper value={foreigners} onChange={setForeigners} min={0} />
-          </View>
-        </View>
-
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 32 }}>
-          <View
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: "#22C55E",
-              marginRight: 6,
-            }}
-          />
-          <Text style={{ fontSize: 13, color: colors.textGray }}>
-            {seatsAvailable} places disponibles
-          </Text>
+        <View style={{ marginBottom: 32 }}>
+          {PASSENGER_TYPES.map((type, i) => {
+            const isSelected = passengerType === type.id;
+            return (
+              <Pressable
+                key={type.id}
+                onPress={() => setPassengerType(type.id)}
+                style={[
+                  styles.passengerCard,
+                  i < PASSENGER_TYPES.length - 1 && { marginBottom: 12 },
+                  isSelected && styles.passengerCardSelected,
+                ]}
+              >
+                <View style={[styles.passengerIcon, isSelected && styles.passengerIconSelected]}>
+                  <Ionicons
+                    name={type.icon}
+                    size={20}
+                    color={isSelected ? colors.white : colors.primary}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.passengerLabel}>{type.label}</Text>
+                  <Text style={styles.passengerPrice}>{formatFcfa(type.price)}</Text>
+                </View>
+                <View style={[styles.radio, isSelected && styles.radioSelected]}>
+                  {isSelected && <View style={styles.radioDot} />}
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
 
         <View
@@ -197,11 +161,9 @@ export default function TicketsScreen() {
             marginBottom: 16,
           }}
         >
-          <Text style={{ fontSize: 14, color: colors.textGray }}>
-            {passengers} passager{passengers > 1 ? "s" : ""}
-          </Text>
+          <Text style={{ fontSize: 14, color: colors.textGray }}>1 billet • {selected.label}</Text>
           <Text style={{ fontSize: 18, fontWeight: "800", color: colors.textDark }}>
-            {formatFcfa(total)}
+            {formatFcfa(selected.price)}
           </Text>
         </View>
 
@@ -213,7 +175,7 @@ export default function TicketsScreen() {
             style={{ height: 54, borderRadius: 14, alignItems: "center", justifyContent: "center" }}
           >
             <Text style={{ fontSize: 16, fontWeight: "700", color: colors.white }}>
-              {trip ? `Payer ${formatFcfa(total)}` : "Choisir le voyage pour continuer"}
+              {trip ? `Payer ${formatFcfa(selected.price)}` : "Choisir le voyage pour continuer"}
             </Text>
           </LinearGradient>
         </Pressable>
@@ -254,6 +216,12 @@ const styles = {
     backgroundColor: colors.inputBg,
     borderRadius: 16,
     padding: 12,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  passengerCardSelected: {
+    backgroundColor: "#EFF4FF",
+    borderColor: colors.primary,
   },
   passengerIcon: {
     width: 42,
@@ -263,6 +231,9 @@ const styles = {
     alignItems: "center" as const,
     justifyContent: "center" as const,
     marginRight: 12,
+  },
+  passengerIconSelected: {
+    backgroundColor: colors.primary,
   },
   passengerLabel: {
     fontSize: 14,
@@ -274,5 +245,23 @@ const styles = {
     fontWeight: "600" as const,
     color: colors.primary,
     marginTop: 1,
+  },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  radioSelected: {
+    borderColor: colors.primary,
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
   },
 };

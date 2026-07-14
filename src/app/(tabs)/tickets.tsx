@@ -1,4 +1,5 @@
-import { View, Text, Pressable, FlatList } from "react-native";
+import { useMemo, useState } from "react";
+import { View, Text, Pressable, FlatList, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -6,13 +7,24 @@ import { router } from "expo-router";
 import { colors, gradients } from "@/constants/theme";
 import { useTickets } from "@/hooks/useTickets";
 import { formatFcfa } from "@/constants/trip";
-import { Ticket } from "@/types";
+import { Ticket, TicketStatus } from "@/types";
 
-const STATUS_STYLES: Record<Ticket["status"], { bg: string; text: string }> = {
+const VISIBLE_COUNT = 5;
+
+const STATUS_STYLES: Record<TicketStatus, { bg: string; text: string }> = {
   valide: { bg: "#DCFCE7", text: "#16A34A" },
   "utilisé": { bg: colors.inputBg, text: colors.textGray },
   "expiré": { bg: "#FEE2E2", text: "#DC2626" },
 };
+
+type FilterId = "tous" | TicketStatus;
+
+const FILTERS: { id: FilterId; label: string }[] = [
+  { id: "tous", label: "Tous" },
+  { id: "valide", label: "Actifs" },
+  { id: "utilisé", label: "Utilisés" },
+  { id: "expiré", label: "Expirés" },
+];
 
 function TicketCard({ ticket }: { ticket: Ticket }) {
   const statusStyle = STATUS_STYLES[ticket.status];
@@ -88,14 +100,88 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
 
 export default function TicketsScreen() {
   const { tickets } = useTickets();
+  const [filter, setFilter] = useState<FilterId>("tous");
+  const [showAll, setShowAll] = useState(false);
+
+  const filtered = useMemo(
+    () => (filter === "tous" ? tickets : tickets.filter((t) => t.status === filter)),
+    [tickets, filter]
+  );
+  const visibleTickets = showAll ? filtered : filtered.slice(0, VISIBLE_COUNT);
+  const hasMore = filtered.length > VISIBLE_COUNT && !showAll;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }} edges={["top", "bottom"]}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 20,
+          paddingTop: 8,
+          paddingBottom: 4,
+        }}
+      >
         <Text style={{ fontSize: 22, fontWeight: "800", color: colors.textDark }}>
           Mes billets
         </Text>
+        <Pressable onPress={() => router.push("/ticket/new")}>
+          <LinearGradient
+            colors={gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="add" size={22} color={colors.white} />
+          </LinearGradient>
+        </Pressable>
       </View>
+
+      {tickets.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12 }}
+        >
+          {FILTERS.map((f, i) => {
+            const isActive = filter === f.id;
+            return (
+              <Pressable
+                key={f.id}
+                onPress={() => {
+                  setFilter(f.id);
+                  setShowAll(false);
+                }}
+                style={{
+                  paddingHorizontal: 16,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: isActive ? colors.primary : colors.inputBg,
+                  marginRight: i === FILTERS.length - 1 ? 0 : 10,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: isActive ? colors.white : colors.textGray,
+                  }}
+                >
+                  {f.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {tickets.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
@@ -133,29 +219,34 @@ export default function TicketsScreen() {
         </View>
       ) : (
         <FlatList
-          data={tickets}
+          data={visibleTickets}
           keyExtractor={(t) => t.id}
-          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          contentContainerStyle={{ padding: 20, paddingTop: 4, paddingBottom: 40 }}
           renderItem={({ item }) => <TicketCard ticket={item} />}
+          ListEmptyComponent={
+            <Text style={{ fontSize: 14, color: colors.textGray, textAlign: "center", marginTop: 20 }}>
+              Aucun billet dans cette catégorie.
+            </Text>
+          }
           ListFooterComponent={
-            <Pressable onPress={() => router.push("/ticket/new")} style={{ marginTop: 4 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 1.5,
-                  borderColor: colors.primary,
-                  borderRadius: 14,
-                  height: 54,
-                }}
-              >
-                <Ionicons name="add" size={18} color={colors.primary} style={{ marginRight: 6 }} />
-                <Text style={{ fontSize: 15, fontWeight: "700", color: colors.primary }}>
-                  Acheter un nouveau billet
-                </Text>
-              </View>
-            </Pressable>
+            hasMore ? (
+              <Pressable onPress={() => setShowAll(true)}>
+                <View
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 1.5,
+                    borderColor: colors.primary,
+                    borderRadius: 14,
+                    height: 48,
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primary }}>
+                    Voir tout ({filtered.length})
+                  </Text>
+                </View>
+              </Pressable>
+            ) : null
           }
         />
       )}
