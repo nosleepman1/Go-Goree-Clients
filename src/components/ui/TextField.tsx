@@ -20,7 +20,6 @@ export function TextField({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
         borderRadius: 14,
         paddingHorizontal: 16,
         height: 52,
@@ -33,6 +32,7 @@ export function TextField({
         name={icon}
         size={18}
         color={onBlue ? colors.white : colors.textGray}
+        style={{ marginRight: 10 }}
       />
       <TextInput
         placeholderTextColor={onBlue ? "rgba(255,255,255,0.7)" : colors.textGray}

@@ -117,7 +117,7 @@ export default function PaymentScreen() {
           Choisir un mode de paiement
         </Text>
 
-        <View style={{ gap: 12, marginBottom: 32 }}>
+        <View style={{ marginBottom: 32 }}>
           {methods.map((method) => {
             const isSelected = selected === method.id;
             return (
@@ -127,12 +127,12 @@ export default function PaymentScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 12,
                   padding: 14,
                   borderRadius: 14,
                   borderWidth: 1.5,
                   borderColor: isSelected ? colors.primary : colors.border,
                   backgroundColor: isSelected ? "#EFF4FF" : colors.white,
+                  marginBottom: 12,
                 }}
               >
                 <View
@@ -143,6 +143,7 @@ export default function PaymentScreen() {
                     backgroundColor: method.badgeColor,
                     alignItems: "center",
                     justifyContent: "center",
+                    marginRight: 12,
                   }}
                 >
                   {method.id === "wallet" ? (
@@ -153,7 +154,7 @@ export default function PaymentScreen() {
                     </Text>
                   )}
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, marginRight: 12 }}>
                   <Text style={{ fontSize: 15, fontWeight: "600", color: colors.textDark }}>
                     {method.label}
                   </Text>

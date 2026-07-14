@@ -71,18 +71,34 @@ export default function TicketsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
-          <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: "row", marginBottom: 24 }}>
+          <View style={{ flex: 1, marginRight: 12 }}>
             <Text style={styles.label}>Départ</Text>
             <View style={styles.field}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} />
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: colors.primary,
+                  marginRight: 8,
+                }}
+              />
               <Text style={styles.fieldText}>{ROUTE.departure}</Text>
             </View>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Destination</Text>
             <View style={styles.field}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primaryLight }} />
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: colors.primaryLight,
+                  marginRight: 8,
+                }}
+              />
               <Text style={styles.fieldText}>{ROUTE.destination}</Text>
             </View>
           </View>
@@ -102,11 +118,12 @@ export default function TicketsScreen() {
             },
           ]}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons
               name="calendar-outline"
               size={18}
               color={trip ? colors.textGray : colors.primary}
+              style={{ marginRight: 10 }}
             />
             <Text
               style={[
@@ -122,8 +139,8 @@ export default function TicketsScreen() {
 
         <Text style={[styles.label, { marginBottom: 12 }]}>Passagers</Text>
 
-        <View style={{ gap: 12, marginBottom: 24 }}>
-          <View style={styles.passengerCard}>
+        <View style={{ marginBottom: 24 }}>
+          <View style={[styles.passengerCard, { marginBottom: 12 }]}>
             <View style={styles.passengerIcon}>
               <Ionicons name="happy-outline" size={20} color={colors.primary} />
             </View>
@@ -134,7 +151,7 @@ export default function TicketsScreen() {
             <Stepper value={children} onChange={setChildren} min={0} />
           </View>
 
-          <View style={styles.passengerCard}>
+          <View style={[styles.passengerCard, { marginBottom: 12 }]}>
             <View style={styles.passengerIcon}>
               <Ionicons name="person-outline" size={20} color={colors.primary} />
             </View>
@@ -157,8 +174,16 @@ export default function TicketsScreen() {
           </View>
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 32 }}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#22C55E" }} />
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 32 }}>
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: "#22C55E",
+              marginRight: 6,
+            }}
+          />
           <Text style={{ fontSize: 13, color: colors.textGray }}>
             {seatsAvailable} places disponibles
           </Text>
@@ -213,7 +238,6 @@ const styles = {
   field: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    gap: 10,
     backgroundColor: colors.inputBg,
     borderRadius: 12,
     paddingHorizontal: 14,
@@ -227,7 +251,6 @@ const styles = {
   passengerCard: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    gap: 12,
     backgroundColor: colors.inputBg,
     borderRadius: 16,
     padding: 12,
@@ -239,6 +262,7 @@ const styles = {
     backgroundColor: colors.white,
     alignItems: "center" as const,
     justifyContent: "center" as const,
+    marginRight: 12,
   },
   passengerLabel: {
     fontSize: 14,
