@@ -50,8 +50,8 @@ export default function RegisterScreen() {
             Créer un compte
           </Text>
 
-          <View style={{ gap: 18 }}>
-            <View>
+          <View>
+            <View style={{ marginBottom: 18 }}>
               <Text style={styles.label}>Nom</Text>
               <TextField
                 icon="person-outline"
@@ -61,7 +61,7 @@ export default function RegisterScreen() {
               />
             </View>
 
-            <View>
+            <View style={{ marginBottom: 18 }}>
               <Text style={styles.label}>Prénom</Text>
               <TextField
                 icon="person-outline"
@@ -71,7 +71,7 @@ export default function RegisterScreen() {
               />
             </View>
 
-            <View>
+            <View style={{ marginBottom: 18 }}>
               <Text style={styles.label}>Téléphone</Text>
               <TextField
                 icon="call-outline"
@@ -82,7 +82,7 @@ export default function RegisterScreen() {
               />
             </View>
 
-            <View>
+            <View style={{ marginBottom: 18 }}>
               <Text style={styles.label}>Email</Text>
               <TextField
                 icon="mail-outline"
@@ -94,7 +94,7 @@ export default function RegisterScreen() {
               />
             </View>
 
-            <View>
+            <View style={{ marginBottom: 18 }}>
               <Text style={styles.label}>Mot de passe</Text>
               <TextField
                 icon="lock-closed-outline"

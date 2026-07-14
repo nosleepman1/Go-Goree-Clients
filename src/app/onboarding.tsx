@@ -154,7 +154,6 @@ export default function OnboardingScreen() {
             flexDirection: "row",
             justifyContent: "center",
             alignItems: "center",
-            gap: 6,
             marginBottom: 24,
           }}
         >
@@ -165,6 +164,7 @@ export default function OnboardingScreen() {
                 width: i === index ? 24 : 8,
                 height: 8,
                 borderRadius: 4,
+                marginRight: i === slides.length - 1 ? 0 : 6,
                 backgroundColor:
                   i === index
                     ? isBlue
