@@ -12,7 +12,7 @@ export default function HomeScreen() {
     <View style={{ flex: 1, backgroundColor: colors.white }}>
       <ImageBackground
         source={require("../../../assets/goree.jpeg")}
-        style={{ height: 260, width: "100%" }}
+        style={{ height: 350, width: "100%" }}
         imageStyle={{ width: "100%", height: "100%", resizeMode: "cover" }}
       >
         <SafeAreaView edges={["top"]}>
