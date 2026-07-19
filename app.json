@@ -26,12 +26,19 @@
       "expo-router",
       "expo-secure-store",
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Go Goree utilise Face ID pour vous reconnecter rapidement et en toute sécurité."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Go Goree a besoin d'accéder à vos photos pour envoyer vos documents.",
           "cameraPermission": "Go Goree a besoin d'accéder à votre caméra pour photographier vos documents."
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

@@ -13,6 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { colors } from "@/constants/theme";
 import { PillButton } from "@/components/ui/PillButton";
+import { storage } from "@/utils/storage";
+import { ONBOARDING_SEEN_KEY } from "@/constants/config";
 
 type Slide = {
   key: string;
@@ -53,9 +55,16 @@ export default function OnboardingScreen() {
   const isLast = index === slides.length - 1;
   const isBlue = slides[index].bg === "blue";
 
+  async function finishOnboarding() {
+    // Marqué comme vu : les prochains lancements iront directement au login
+    // (ou à l'accueil si une session est encore valide) via index.tsx.
+    await storage.set(ONBOARDING_SEEN_KEY, "1");
+    router.replace("/(auth)/login");
+  }
+
   function goNext() {
     if (isLast) {
-      router.replace("/(auth)/login");
+      finishOnboarding();
       return;
     }
     const nextIndex = index + 1;
@@ -64,7 +73,7 @@ export default function OnboardingScreen() {
   }
 
   function skip() {
-    router.replace("/(auth)/login");
+    finishOnboarding();
   }
 
   function onScrollEnd(e: NativeSyntheticEvent<NativeScrollEvent>) {
