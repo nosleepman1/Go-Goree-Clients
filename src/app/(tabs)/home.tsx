@@ -1,13 +1,37 @@
-import { View, Text, Pressable, ScrollView, ImageBackground } from "react-native";
+import { useMemo } from "react";
+import { View, Text, Pressable, ScrollView, ImageBackground, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { colors, gradients } from "@/constants/theme";
-
-const departures = ["07h00", "08h30", "10h00", "12h00", "14h30", "16h00", "17h30"];
+import { useVoyages, UPCOMING_VOYAGES_PARAMS } from "@/hooks/useVoyages";
+import { formatHeureDepart, todayIso } from "@/utils/date";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+  const { data: voyages, isLoading, isError } = useVoyages(UPCOMING_VOYAGES_PARAMS);
+  const firstName = user?.name?.split(" ")[0];
+
+  const sortedVoyages = useMemo(() => {
+    if (!voyages) return [];
+    return [...voyages].sort((a, b) => {
+      const dateCompare = a.date_voyage.localeCompare(b.date_voyage);
+      if (dateCompare !== 0) return dateCompare;
+      return a.trajet.heure_depart.localeCompare(b.trajet.heure_depart);
+    });
+  }, [voyages]);
+
+  const nextVoyage = sortedVoyages[0] ?? null;
+
+  const todayDepartures = useMemo(() => {
+    const today = todayIso();
+    return sortedVoyages
+      .filter((v) => v.date_voyage === today)
+      .map((v) => formatHeureDepart(v.trajet.heure_depart));
+  }, [sortedVoyages]);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }}>
       <ImageBackground
@@ -28,7 +52,7 @@ export default function HomeScreen() {
             <View>
               <Text style={{ color: colors.white, fontSize: 14 }}>Bonjour,</Text>
               <Text style={{ color: colors.white, fontSize: 24, fontWeight: "800" }}>
-                Boubacar
+                {firstName ?? "voyageur"}
               </Text>
             </View>
             <Pressable
@@ -83,28 +107,44 @@ export default function HomeScreen() {
             elevation: 3,
           }}
         >
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textDark }}>
-              Dakar → Île de Gorée
+          {isLoading ? (
+            <View style={{ paddingVertical: 12, alignItems: "center" }}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : isError ? (
+            <Text style={{ fontSize: 13, color: colors.textGray, paddingVertical: 8 }}>
+              Impossible de charger les prochains départs.
             </Text>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.primary }}>
-              10h30
+          ) : !nextVoyage ? (
+            <Text style={{ fontSize: 13, color: colors.textGray, paddingVertical: 8 }}>
+              Aucun voyage disponible pour le moment.
             </Text>
-          </View>
+          ) : (
+            <>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textDark }}>
+                  Dakar → Île de Gorée
+                </Text>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: colors.primary }}>
+                  {formatHeureDepart(nextVoyage.trajet.heure_depart)}
+                </Text>
+              </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-            <Ionicons name="people-outline" size={16} color={colors.textGray} style={{ marginRight: 6 }} />
-            <Text style={{ fontSize: 13, color: colors.textGray }}>
-              45 places disponibles
-            </Text>
-          </View>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+                <Ionicons name="people-outline" size={16} color={colors.textGray} style={{ marginRight: 6 }} />
+                <Text style={{ fontSize: 13, color: colors.textGray }}>
+                  {nextVoyage.places_restantes} places disponibles
+                </Text>
+              </View>
+            </>
+          )}
 
           <Pressable onPress={() => router.push("/ticket/new")}>
             <LinearGradient
@@ -196,7 +236,9 @@ export default function HomeScreen() {
           </View>
 
           <Text style={{ fontSize: 13, color: colors.textGray, lineHeight: 20 }}>
-            {departures.join(", ")}
+            {todayDepartures.length > 0
+              ? todayDepartures.join(", ")
+              : "Aucun départ prévu aujourd'hui."}
           </Text>
         </View>
       </ScrollView>

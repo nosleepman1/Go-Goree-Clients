@@ -1,39 +1,70 @@
-import { useEffect, useState } from "react";
-import { Modal, View, Text, Pressable, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Modal,
+  View,
+  Text,
+  Pressable,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
-import { getUpcomingDates, getTimeSlots, TripDate } from "@/constants/trip";
+import { describeDate, formatHeureDepart, DateLabel } from "@/utils/date";
+import { useVoyages, UPCOMING_VOYAGES_PARAMS } from "@/hooks/useVoyages";
+import { Voyage, TripSelection } from "@/types/voyage";
 
 interface TripPickerModalProps {
   visible: boolean;
   onClose: () => void;
-  onConfirm: (selection: { date: TripDate; time: string }) => void;
+  onConfirm: (selection: TripSelection) => void;
 }
 
 type Step = "date" | "time";
 
 export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModalProps) {
   const [step, setStep] = useState<Step>("date");
-  const [selectedDate, setSelectedDate] = useState<TripDate | null>(null);
-  const dates = getUpcomingDates(8);
-  const timeSlots = selectedDate ? getTimeSlots(selectedDate.iso) : [];
+  const [selectedDateIso, setSelectedDateIso] = useState<string | null>(null);
+
+  const { data: voyages, isLoading, isError, refetch } = useVoyages(UPCOMING_VOYAGES_PARAMS);
 
   useEffect(() => {
     if (visible) {
       setStep("date");
-      setSelectedDate(null);
+      setSelectedDateIso(null);
     }
   }, [visible]);
 
-  function handlePickDate(date: TripDate) {
-    setSelectedDate(date);
+  // Un voyage par créneau (trajet+jour), regroupés par date puis triés par heure.
+  const dates: DateLabel[] = useMemo(() => {
+    if (!voyages) return [];
+    const uniqueDates = Array.from(new Set(voyages.map((v) => v.date_voyage))).sort();
+    return uniqueDates.map(describeDate);
+  }, [voyages]);
+
+  const timeSlots: Voyage[] = useMemo(() => {
+    if (!voyages || !selectedDateIso) return [];
+    return voyages
+      .filter((v) => v.date_voyage === selectedDateIso)
+      .sort((a, b) => a.trajet.heure_depart.localeCompare(b.trajet.heure_depart));
+  }, [voyages, selectedDateIso]);
+
+  const selectedDate = dates.find((d) => d.iso === selectedDateIso) ?? null;
+
+  function handlePickDate(date: DateLabel) {
+    setSelectedDateIso(date.iso);
     setStep("time");
   }
 
-  function handlePickTime(time: string) {
-    if (!selectedDate) return;
-    onConfirm({ date: selectedDate, time });
+  function handlePickVoyage(voyage: Voyage) {
+    if (voyage.places_restantes <= 0 || !selectedDate) return;
+    onConfirm({
+      voyage,
+      dateLabel: selectedDate.label,
+      timeLabel: formatHeureDepart(voyage.trajet.heure_depart),
+    });
   }
 
   return (
@@ -71,8 +102,25 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
-              {step === "date"
-                ? dates.map((date) => (
+              {isLoading ? (
+                <View style={styles.stateBlock}>
+                  <ActivityIndicator color={colors.primary} />
+                  <Text style={styles.stateText}>Chargement des voyages...</Text>
+                </View>
+              ) : isError ? (
+                <View style={styles.stateBlock}>
+                  <Text style={styles.stateText}>Impossible de charger les voyages.</Text>
+                  <TouchableOpacity onPress={() => refetch()} style={styles.retryBtn}>
+                    <Text style={styles.retryBtnText}>Réessayer</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : step === "date" ? (
+                dates.length === 0 ? (
+                  <View style={styles.stateBlock}>
+                    <Text style={styles.stateText}>Aucun voyage disponible pour le moment.</Text>
+                  </View>
+                ) : (
+                  dates.map((date) => (
                     <TouchableOpacity
                       key={date.iso}
                       activeOpacity={0.7}
@@ -96,30 +144,41 @@ export function TripPickerModal({ visible, onClose, onConfirm }: TripPickerModal
                       <Ionicons name="chevron-forward" size={18} color={colors.textGray} />
                     </TouchableOpacity>
                   ))
-                : (
-                    <View>
-                      {timeSlots.map((slot) => (
-                        <TouchableOpacity
-                          key={slot.time}
-                          activeOpacity={0.7}
-                          onPress={() => handlePickTime(slot.time)}
-                          style={styles.timeRow}
-                        >
-                          <View style={styles.timeIconBadge}>
-                            <Ionicons name="time-outline" size={18} color={colors.primary} />
-                          </View>
-                          <Text style={styles.timeLabel}>{slot.time}</Text>
+                )
+              ) : (
+                <View>
+                  {timeSlots.map((voyage) => {
+                    const isFull = voyage.places_restantes <= 0;
+                    return (
+                      <TouchableOpacity
+                        key={voyage.id}
+                        activeOpacity={isFull ? 1 : 0.7}
+                        disabled={isFull}
+                        onPress={() => handlePickVoyage(voyage)}
+                        style={[styles.timeRow, isFull && styles.timeRowFull]}
+                      >
+                        <View style={styles.timeIconBadge}>
+                          <Ionicons name="time-outline" size={18} color={colors.primary} />
+                        </View>
+                        <Text style={styles.timeLabel}>
+                          {formatHeureDepart(voyage.trajet.heure_depart)}
+                        </Text>
+                        {isFull ? (
+                          <Text style={styles.fullLabel}>Complet</Text>
+                        ) : (
                           <View style={styles.seatsBlock}>
                             <View style={styles.seatsRow}>
                               <View style={styles.seatsDot} />
-                              <Text style={styles.seatsNum}>{slot.seatsAvailable}</Text>
+                              <Text style={styles.seatsNum}>{voyage.places_restantes}</Text>
                             </View>
                             <Text style={styles.seatsLabel}>places</Text>
                           </View>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
             </ScrollView>
           </SafeAreaView>
         </Pressable>
@@ -191,6 +250,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 28,
   },
+  stateBlock: {
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  stateText: {
+    fontSize: 14,
+    color: colors.textGray,
+    marginTop: 12,
+    textAlign: "center",
+  },
+  retryBtn: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: colors.primaryTint,
+  },
+  retryBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.primary,
+  },
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -252,6 +333,9 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
   },
+  timeRowFull: {
+    opacity: 0.5,
+  },
   timeIconBadge: {
     width: 42,
     height: 42,
@@ -266,6 +350,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: colors.textDark,
+  },
+  fullLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textGray,
   },
   seatsBlock: {
     alignItems: "flex-end",

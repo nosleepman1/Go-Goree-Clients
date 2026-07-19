@@ -1,21 +1,31 @@
-import { useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { colors, gradients } from "@/constants/theme";
 import { TripPickerModal } from "@/components/TripPickerModal";
-import { ROUTE, PASSENGER_TYPES, PassengerTypeId, formatFcfa, TripDate } from "@/constants/trip";
+import { ROUTE, formatFcfa } from "@/constants/trip";
+import { CATEGORIE_LABELS, CATEGORIE_ICONS } from "@/constants/categorie";
+import { TripSelection } from "@/types/voyage";
+import { useTarifs } from "@/hooks/useTarifs";
 
 export default function NewTicketScreen() {
-  const [passengerType, setPassengerType] = useState<PassengerTypeId>("adulte");
+  const { data: tarifs, isLoading, isError } = useTarifs();
+  const [selectedTarifId, setSelectedTarifId] = useState<string | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [trip, setTrip] = useState<{ date: TripDate; time: string } | null>(null);
+  const [trip, setTrip] = useState<TripSelection | null>(null);
 
-  const selected = PASSENGER_TYPES.find((p) => p.id === passengerType)!;
+  useEffect(() => {
+    if (tarifs && tarifs.length > 0 && !selectedTarifId) {
+      setSelectedTarifId(tarifs[0].id);
+    }
+  }, [tarifs, selectedTarifId]);
 
-  function handleConfirmTrip(selection: { date: TripDate; time: string }) {
+  const selected = tarifs?.find((t) => t.id === selectedTarifId) ?? null;
+
+  function handleConfirmTrip(selection: TripSelection) {
     setTrip(selection);
     setPickerVisible(false);
   }
@@ -25,12 +35,15 @@ export default function NewTicketScreen() {
       setPickerVisible(true);
       return;
     }
+    if (!selected) return;
     router.push({
       pathname: "/ticket/payment",
       params: {
-        passengerLabel: selected.label,
-        total: String(selected.price),
-        date: `${trip.date.label} • ${trip.time}`,
+        voyageId: trip.voyage.id,
+        categorie: selected.categorie,
+        passengerLabel: CATEGORIE_LABELS[selected.categorie],
+        total: String(Number(selected.prix)),
+        date: `${trip.dateLabel} • ${trip.timeLabel}`,
       },
     });
   }
@@ -110,7 +123,7 @@ export default function NewTicketScreen() {
               style={{ marginRight: 10 }}
             />
             <Text style={[styles.fieldText, !trip && { color: colors.primary }]}>
-              {trip ? `${trip.date.label} • ${trip.time}` : "Choisir le voyage"}
+              {trip ? `${trip.dateLabel} • ${trip.timeLabel}` : "Choisir le voyage"}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={trip ? colors.textGray : colors.primary} />
@@ -121,37 +134,47 @@ export default function NewTicketScreen() {
           Ce billet est valable pour 1 personne.
         </Text>
 
-        <View style={{ marginBottom: 32 }}>
-          {PASSENGER_TYPES.map((type, i) => {
-            const isSelected = passengerType === type.id;
-            return (
-              <Pressable
-                key={type.id}
-                onPress={() => setPassengerType(type.id)}
-                style={[
-                  styles.passengerCard,
-                  i < PASSENGER_TYPES.length - 1 && { marginBottom: 12 },
-                  isSelected && styles.passengerCardSelected,
-                ]}
-              >
-                <View style={[styles.passengerIcon, isSelected && styles.passengerIconSelected]}>
-                  <Ionicons
-                    name={type.icon}
-                    size={20}
-                    color={isSelected ? colors.white : colors.primary}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.passengerLabel}>{type.label}</Text>
-                  <Text style={styles.passengerPrice}>{formatFcfa(type.price)}</Text>
-                </View>
-                <View style={[styles.radio, isSelected && styles.radioSelected]}>
-                  {isSelected && <View style={styles.radioDot} />}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
+        {isLoading ? (
+          <View style={{ paddingVertical: 24, alignItems: "center" }}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : isError ? (
+          <Text style={{ fontSize: 13, color: colors.textGray, marginBottom: 24 }}>
+            Impossible de charger les tarifs.
+          </Text>
+        ) : (
+          <View style={{ marginBottom: 32 }}>
+            {(tarifs ?? []).map((tarif, i) => {
+              const isSelected = selectedTarifId === tarif.id;
+              return (
+                <Pressable
+                  key={tarif.id}
+                  onPress={() => setSelectedTarifId(tarif.id)}
+                  style={[
+                    styles.passengerCard,
+                    i < (tarifs?.length ?? 0) - 1 && { marginBottom: 12 },
+                    isSelected && styles.passengerCardSelected,
+                  ]}
+                >
+                  <View style={[styles.passengerIcon, isSelected && styles.passengerIconSelected]}>
+                    <Ionicons
+                      name={CATEGORIE_ICONS[tarif.categorie]}
+                      size={20}
+                      color={isSelected ? colors.white : colors.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.passengerLabel}>{CATEGORIE_LABELS[tarif.categorie]}</Text>
+                    <Text style={styles.passengerPrice}>{formatFcfa(Number(tarif.prix))}</Text>
+                  </View>
+                  <View style={[styles.radio, isSelected && styles.radioSelected]}>
+                    {isSelected && <View style={styles.radioDot} />}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
         <View
           style={{
@@ -161,21 +184,33 @@ export default function NewTicketScreen() {
             marginBottom: 16,
           }}
         >
-          <Text style={{ fontSize: 14, color: colors.textGray }}>1 billet • {selected.label}</Text>
+          <Text style={{ fontSize: 14, color: colors.textGray }}>
+            1 billet • {selected ? CATEGORIE_LABELS[selected.categorie] : "—"}
+          </Text>
           <Text style={{ fontSize: 18, fontWeight: "800", color: colors.textDark }}>
-            {formatFcfa(selected.price)}
+            {selected ? formatFcfa(Number(selected.prix)) : "—"}
           </Text>
         </View>
 
-        <Pressable onPress={handlePay}>
+        <Pressable onPress={handlePay} disabled={!selected}>
           <LinearGradient
             colors={gradients.primary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={{ height: 54, borderRadius: 14, alignItems: "center", justifyContent: "center" }}
+            style={{
+              height: 54,
+              borderRadius: 14,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: selected ? 1 : 0.6,
+            }}
           >
             <Text style={{ fontSize: 16, fontWeight: "700", color: colors.white }}>
-              {trip ? `Payer ${formatFcfa(selected.price)}` : "Choisir le voyage pour continuer"}
+              {!selected
+                ? "Chargement des tarifs..."
+                : trip
+                  ? `Payer ${formatFcfa(Number(selected.prix))}`
+                  : "Choisir le voyage pour continuer"}
             </Text>
           </LinearGradient>
         </Pressable>

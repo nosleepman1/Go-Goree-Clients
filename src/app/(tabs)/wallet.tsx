@@ -1,111 +1,98 @@
-import { useState } from "react";
-import { View, Text, Pressable, FlatList } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  AppState,
+  RefreshControl,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import * as WebBrowser from "expo-web-browser";
 import { colors, gradients } from "@/constants/theme";
-import { useWallet } from "@/hooks/useWallet";
+import { usePortefeuille } from "@/hooks/usePortefeuille";
+import { portefeuilleService, RechargeMode } from "@/services/portefeuille.service";
 import { formatFcfa } from "@/constants/trip";
+import { formatApiError } from "@/utils/apiError";
 import { RechargeModal } from "@/components/RechargeModal";
-import { Transaction } from "@/types";
 
 const QUICK_AMOUNTS = [2000, 5000, 10000, 20000];
+const RECHARGE_POLL_MS = 3000;
+const RECHARGE_TIMEOUT_MS = 60_000;
 
-function methodBadge(method: string) {
-  const key = method.toLowerCase();
-  if (key.includes("wave")) return { bg: "#1D9BF0", text: "W" };
-  if (key.includes("orange")) return { bg: "#FF7900", text: "OM" };
-  if (key.includes("yas")) return { bg: "#FFC800", text: "Y" };
-  return { bg: colors.textGray, text: method.slice(0, 1).toUpperCase() };
-}
+const RECHARGE_MODE_MAP: Record<"wave" | "orange" | "yas", RechargeMode> = {
+  wave: "WAVE",
+  orange: "ORANGE_MONEY",
+  yas: "YAS",
+};
 
-function formatRelativeDateTime(iso: string) {
-  const date = new Date(iso);
-  const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  const time = date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  if (date.toDateString() === now.toDateString()) return `Aujourd'hui, ${time}`;
-  if (date.toDateString() === yesterday.toDateString()) return `Hier, ${time}`;
-  return `${date.toLocaleDateString("fr-FR")}, ${time}`;
-}
-
-function TransactionRow({ transaction }: { transaction: Transaction }) {
-  const isRecharge = transaction.type === "recharge";
-  const badge = methodBadge(transaction.method);
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-      }}
-    >
-      {isRecharge ? (
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: badge.bg,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 12,
-          }}
-        >
-          <Text style={{ color: colors.white, fontWeight: "800", fontSize: 13 }}>
-            {badge.text}
-          </Text>
-        </View>
-      ) : (
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: colors.primaryTint,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 12,
-          }}
-        >
-          <Ionicons name="boat" size={18} color={colors.primary} />
-        </View>
-      )}
-      <View style={{ flex: 1, marginRight: 12 }}>
-        <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textDark }}>
-          {transaction.label}
-        </Text>
-        <Text style={{ fontSize: 12, color: colors.textGray, marginTop: 2 }}>
-          {transaction.method} • {formatRelativeDateTime(transaction.date)}
-        </Text>
-      </View>
-      <Text
-        style={{
-          fontSize: 14,
-          fontWeight: "800",
-          color: isRecharge ? "#16A34A" : colors.primary,
-        }}
-      >
-        {isRecharge ? "+" : "-"}
-        {formatFcfa(Math.abs(transaction.amount))}
-      </Text>
-    </View>
-  );
-}
+type PendingRecharge = {
+  previousSolde: number;
+  startedAt: number;
+};
 
 export default function WalletScreen() {
-  const { balance, transactions, recharge } = useWallet();
+  const { data: portefeuille, isLoading, isError, refetch, isRefetching } = usePortefeuille();
   const [modalVisible, setModalVisible] = useState(false);
   const [presetAmount, setPresetAmount] = useState<number | null>(null);
   const [balanceHidden, setBalanceHidden] = useState(false);
+  const [rechargeError, setRechargeError] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingRecharge | null>(null);
+  const [justCredited, setJustCredited] = useState(false);
+  const rechargingRef = useRef(false);
 
-  function handleConfirmRecharge(amount: number, method: string) {
-    recharge(amount, method);
+  const balance = portefeuille ? Number(portefeuille.solde) : null;
+  const pendingTimedOut = pending !== null && Date.now() - pending.startedAt > RECHARGE_TIMEOUT_MS;
+
+  // La recharge n'est créditée que lorsque le webhook Paydunya est traité côté
+  // backend : on observe le solde jusqu'à ce qu'il bouge.
+  useEffect(() => {
+    if (!pending || pendingTimedOut) return;
+    const interval = setInterval(() => refetch(), RECHARGE_POLL_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, pendingTimedOut]);
+
+  useEffect(() => {
+    if (!pending) return;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refetch();
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending]);
+
+  useEffect(() => {
+    if (pending && balance !== null && balance !== pending.previousSolde) {
+      setPending(null);
+      setJustCredited(true);
+      const timer = setTimeout(() => setJustCredited(false), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [balance, pending]);
+
+  async function handleConfirmRecharge(amount: number, methodId: string) {
+    if (rechargingRef.current) return;
+    rechargingRef.current = true;
+    setRechargeError(null);
     setModalVisible(false);
+    try {
+      const mode = RECHARGE_MODE_MAP[methodId as "wave" | "orange" | "yas"] ?? "PAYDUNYA";
+      const { redirectUrl } = await portefeuilleService.recharge(amount, mode);
+      setPending({ previousSolde: balance ?? 0, startedAt: Date.now() });
+      if (redirectUrl) {
+        await WebBrowser.openBrowserAsync(redirectUrl);
+        refetch();
+      }
+    } catch (err) {
+      setRechargeError(formatApiError(err));
+      setPending(null);
+    } finally {
+      rechargingRef.current = false;
+    }
   }
 
   function openRecharge(amount: number | null) {
@@ -147,9 +134,20 @@ export default function WalletScreen() {
                 />
               </Pressable>
             </View>
-            <Text style={{ fontSize: 32, fontWeight: "800", color: colors.white, marginBottom: 20 }}>
-              {balanceHidden ? "•••• FCFA" : formatFcfa(balance)}
-            </Text>
+
+            {isLoading ? (
+              <View style={{ height: 40, justifyContent: "center", marginBottom: 20 }}>
+                <ActivityIndicator color={colors.white} />
+              </View>
+            ) : (
+              <Text style={{ fontSize: 32, fontWeight: "800", color: colors.white, marginBottom: 20 }}>
+                {isError || balance === null
+                  ? "— FCFA"
+                  : balanceHidden
+                    ? "•••• FCFA"
+                    : formatFcfa(balance)}
+              </Text>
+            )}
 
             <Pressable onPress={() => openRecharge(null)}>
               <View
@@ -172,51 +170,156 @@ export default function WalletScreen() {
         </SafeAreaView>
       </LinearGradient>
 
-      <FlatList
-        data={transactions}
-        keyExtractor={(t) => t.id}
+      <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-        renderItem={({ item }) => <TransactionRow transaction={item} />}
-        ListHeaderComponent={
-          <View>
-            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.textDark, marginBottom: 12 }}>
-              Montants rapides
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 24 }}>
-              {QUICK_AMOUNTS.map((value) => (
-                <Pressable
-                  key={value}
-                  onPress={() => openRecharge(value)}
-                  style={{
-                    paddingHorizontal: 16,
-                    height: 38,
-                    borderRadius: 19,
-                    borderWidth: 1.5,
-                    borderColor: colors.border,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 10,
-                    marginBottom: 10,
-                  }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textDark }}>
-                    {formatFcfa(value)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textDark, marginBottom: 4 }}>
-              Dernières transactions
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />
+        }
+      >
+        {isError ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#FEE2E2",
+              borderRadius: 14,
+              padding: 14,
+              marginBottom: 20,
+            }}
+          >
+            <Ionicons name="alert-circle" size={20} color="#DC2626" style={{ marginRight: 10 }} />
+            <Text style={{ flex: 1, fontSize: 13, color: "#991B1B" }}>
+              Impossible de charger votre portefeuille. Tirez pour réessayer.
             </Text>
           </View>
-        }
-        ListEmptyComponent={
-          <Text style={{ fontSize: 14, color: colors.textGray, marginTop: 12 }}>
-            Aucune transaction pour l'instant.
-          </Text>
-        }
-      />
+        ) : null}
+
+        {rechargeError ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#FEE2E2",
+              borderRadius: 14,
+              padding: 14,
+              marginBottom: 20,
+            }}
+          >
+            <Ionicons name="alert-circle" size={20} color="#DC2626" style={{ marginRight: 10 }} />
+            <Text style={{ flex: 1, fontSize: 13, color: "#991B1B" }}>{rechargeError}</Text>
+            <Pressable onPress={() => setRechargeError(null)} hitSlop={8}>
+              <Ionicons name="close" size={18} color="#991B1B" />
+            </Pressable>
+          </View>
+        ) : null}
+
+        {pending ? (
+          <View
+            style={{
+              backgroundColor: "#FEF3C7",
+              borderRadius: 14,
+              padding: 14,
+              marginBottom: 20,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <Ionicons name="time-outline" size={20} color="#D97706" style={{ marginRight: 10 }} />
+              <Text style={{ flex: 1, fontSize: 13, fontWeight: "700", color: "#92400E" }}>
+                {pendingTimedOut ? "Recharge toujours en attente" : "Recharge en cours de confirmation..."}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 12, color: "#92400E", marginBottom: 10 }}>
+              {pendingTimedOut
+                ? "Le paiement n'a pas encore été confirmé. Le solde sera crédité dès sa validation."
+                : "Votre solde sera mis à jour dès que Paydunya aura confirmé le paiement."}
+            </Text>
+            <View style={{ flexDirection: "row" }}>
+              <Pressable
+                onPress={() => refetch()}
+                style={{
+                  paddingHorizontal: 14,
+                  height: 34,
+                  borderRadius: 17,
+                  backgroundColor: "#D97706",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 10,
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "700", color: colors.white }}>
+                  Vérifier maintenant
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setPending(null)}
+                style={{
+                  paddingHorizontal: 14,
+                  height: 34,
+                  borderRadius: 17,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "700", color: "#92400E" }}>Masquer</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {justCredited ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#DCFCE7",
+              borderRadius: 14,
+              padding: 14,
+              marginBottom: 20,
+            }}
+          >
+            <Ionicons name="checkmark-circle" size={20} color="#16A34A" style={{ marginRight: 10 }} />
+            <Text style={{ flex: 1, fontSize: 13, fontWeight: "700", color: "#166534" }}>
+              Recharge créditée !
+            </Text>
+          </View>
+        ) : null}
+
+        <Text style={{ fontSize: 14, fontWeight: "700", color: colors.textDark, marginBottom: 12 }}>
+          Montants rapides
+        </Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 24 }}>
+          {QUICK_AMOUNTS.map((value) => (
+            <Pressable
+              key={value}
+              onPress={() => openRecharge(value)}
+              style={{
+                paddingHorizontal: 16,
+                height: 38,
+                borderRadius: 19,
+                borderWidth: 1.5,
+                borderColor: colors.border,
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 10,
+                marginBottom: 10,
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textDark }}>
+                {formatFcfa(value)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textDark, marginBottom: 4 }}>
+          Dernières transactions
+        </Text>
+        {/* Le backend n'expose pas encore l'historique des mouvements du
+            portefeuille (GET /portefeuille ne renvoie que le solde). */}
+        <Text style={{ fontSize: 14, color: colors.textGray, marginTop: 8 }}>
+          L'historique des transactions sera bientôt disponible.
+        </Text>
+      </ScrollView>
 
       <RechargeModal
         visible={modalVisible}
