@@ -1,14 +1,16 @@
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import QRCode from "react-native-qrcode-svg";
 import { router, useLocalSearchParams } from "expo-router";
 import { colors } from "@/constants/theme";
-import { useTickets } from "@/hooks/useTickets";
+import { useBillet } from "@/hooks/useBillets";
 import { formatFcfa } from "@/constants/trip";
+import { ticketStatusLabel } from "@/utils/ticketStatus";
 import { Ticket } from "@/types";
 
 const STATUS_STYLES: Record<Ticket["status"], { bg: string; text: string }> = {
+  en_attente: { bg: "#FEF3C7", text: "#D97706" },
   valide: { bg: "#DCFCE7", text: "#16A34A" },
   "utilisé": { bg: colors.inputBg, text: colors.textGray },
   "expiré": { bg: "#FEE2E2", text: "#DC2626" },
@@ -16,8 +18,17 @@ const STATUS_STYLES: Record<Ticket["status"], { bg: string; text: string }> = {
 
 export default function TicketDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getTicket } = useTickets();
-  const ticket = getTicket(id);
+  const { data: ticket, isLoading } = useBillet(id);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }} edges={["top", "bottom"]}>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={colors.primary} size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!ticket) {
     return (
@@ -75,7 +86,7 @@ export default function TicketDetailScreen() {
             }}
           >
             <Text style={{ fontSize: 12, fontWeight: "700", color: statusStyle.text }}>
-              {ticket.status}
+              {ticketStatusLabel(ticket.status)}
             </Text>
           </View>
 

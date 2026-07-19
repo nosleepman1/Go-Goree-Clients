@@ -1,17 +1,27 @@
 import { useMemo, useState } from "react";
-import { View, Text, Pressable, FlatList, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  FlatList,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { colors, gradients } from "@/constants/theme";
-import { useTickets } from "@/hooks/useTickets";
+import { useBillets } from "@/hooks/useBillets";
 import { formatFcfa } from "@/constants/trip";
+import { ticketStatusLabel } from "@/utils/ticketStatus";
 import { Ticket, TicketStatus } from "@/types";
 
 const VISIBLE_COUNT = 5;
 
 const STATUS_STYLES: Record<TicketStatus, { bg: string; text: string }> = {
+  en_attente: { bg: "#FEF3C7", text: "#D97706" },
   valide: { bg: "#DCFCE7", text: "#16A34A" },
   "utilisé": { bg: colors.inputBg, text: colors.textGray },
   "expiré": { bg: "#FEE2E2", text: "#DC2626" },
@@ -21,6 +31,7 @@ type FilterId = "tous" | TicketStatus;
 
 const FILTERS: { id: FilterId; label: string }[] = [
   { id: "tous", label: "Tous" },
+  { id: "en_attente", label: "En attente" },
   { id: "valide", label: "Actifs" },
   { id: "utilisé", label: "Utilisés" },
   { id: "expiré", label: "Expirés" },
@@ -69,7 +80,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           }}
         >
           <Text style={{ fontSize: 11, fontWeight: "700", color: statusStyle.text }}>
-            {ticket.status}
+            {ticketStatusLabel(ticket.status)}
           </Text>
         </View>
       </View>
@@ -99,7 +110,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
 }
 
 export default function TicketsScreen() {
-  const { tickets } = useTickets();
+  const { data: tickets = [], isLoading, isError, refetch, isRefetching } = useBillets();
   const [filter, setFilter] = useState<FilterId>("tous");
   const [showAll, setShowAll] = useState(false);
 
@@ -183,7 +194,30 @@ export default function TicketsScreen() {
         </ScrollView>
       )}
 
-      {tickets.length === 0 ? (
+      {isLoading ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={colors.primary} size="large" />
+        </View>
+      ) : isError ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+          <Text style={{ fontSize: 15, color: colors.textGray, textAlign: "center", marginBottom: 16 }}>
+            Impossible de charger vos billets.
+          </Text>
+          <Pressable
+            onPress={() => refetch()}
+            style={{
+              paddingHorizontal: 24,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: colors.primaryTint,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primary }}>Réessayer</Text>
+          </Pressable>
+        </View>
+      ) : tickets.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <View
             style={{
@@ -222,6 +256,13 @@ export default function TicketsScreen() {
           data={visibleTickets}
           keyExtractor={(t) => t.id}
           contentContainerStyle={{ padding: 20, paddingTop: 4, paddingBottom: 40 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={colors.primary}
+            />
+          }
           renderItem={({ item }) => <TicketCard ticket={item} />}
           ListEmptyComponent={
             <Text style={{ fontSize: 14, color: colors.textGray, textAlign: "center", marginTop: 20 }}>

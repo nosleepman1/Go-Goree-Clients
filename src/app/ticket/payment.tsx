@@ -4,13 +4,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
+import * as WebBrowser from "expo-web-browser";
 import { colors, gradients } from "@/constants/theme";
 import { ROUTE, formatFcfa } from "@/constants/trip";
-import { useWallet } from "@/hooks/useWallet";
-import { payViaPaydunya, PaydunyaMethod } from "@/services/paydunya.service";
+import { usePortefeuille, PORTEFEUILLE_QUERY_KEY } from "@/hooks/usePortefeuille";
+import { BILLETS_QUERY_KEY } from "@/hooks/useBillets";
+import { billetService } from "@/services/billet.service";
+import { CategorieTarif, PaymentMode } from "@/types/billet";
+import { formatApiError } from "@/utils/apiError";
+
+type UiPaymentMethodId = "wave" | "orange" | "yas" | "wallet";
 
 type PaymentMethod = {
-  id: PaydunyaMethod | "wallet";
+  id: UiPaymentMethodId;
   label: string;
   logo?: number;
 };
@@ -26,13 +33,22 @@ const methods: PaymentMethod[] = [
   { id: "wallet", label: "Portefeuille GO GOREE" },
 ];
 
+// Wave/Orange Money/Yas passent tous par la même intégration Paydunya côté backend.
+const PAYDUNYA_MODE_MAP: Record<"wave" | "orange" | "yas", PaymentMode> = {
+  wave: "WAVE",
+  orange: "ORANGE_MONEY",
+  yas: "YAS",
+};
+
 export default function PaymentScreen() {
   const params = useLocalSearchParams<{
+    voyageId: string;
+    categorie: string;
     passengerLabel: string;
     total: string;
     date: string;
   }>();
-  const passengerLabel = params.passengerLabel ?? "Adulte résident";
+  const passengerLabel = params.passengerLabel ?? "Adulte";
   const total = Number(params.total ?? 0);
   const date = params.date ?? "";
   const passengers = `1 ${passengerLabel}`;
@@ -40,32 +56,53 @@ export default function PaymentScreen() {
   const [selected, setSelected] = useState<PaymentMethod["id"]>("wave");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const wallet = useWallet();
+  const { data: portefeuille } = usePortefeuille();
+  const queryClient = useQueryClient();
+  const balance = Number(portefeuille?.solde ?? 0);
 
   async function handlePay() {
     setError(null);
 
-    if (selected === "wallet" && total > wallet.balance) {
+    if (selected === "wallet" && total > balance) {
       setError("Solde insuffisant. Rechargez votre wallet ou choisissez un autre mode de paiement.");
       return;
     }
 
     setLoading(true);
     try {
-      if (selected === "wallet") {
-        wallet.pay(total, `Billet ${ROUTE.departure} ↔ ${ROUTE.destination}`);
-      } else {
-        const result = await payViaPaydunya(selected, total);
-        if (!result.success) {
-          setError("Le paiement a échoué. Veuillez réessayer.");
-          setLoading(false);
-          return;
-        }
+      const paymentMode: PaymentMode =
+        selected === "wallet" ? "PORTEFEUILLE" : PAYDUNYA_MODE_MAP[selected];
+
+      const { billet, redirectUrl } = await billetService.purchase({
+        voyageId: params.voyageId,
+        paymentMode,
+        categorie: params.categorie as CategorieTarif,
+      });
+
+      // Seed du cache : l'écran de confirmation (et le détail) lisent
+      // ["billet", id] sans refaire d'appel réseau au premier rendu.
+      queryClient.setQueryData(["billet", billet.id], billet);
+      queryClient.invalidateQueries({ queryKey: BILLETS_QUERY_KEY });
+
+      if (paymentMode === "PORTEFEUILLE") {
+        // Le solde vient d'être débité côté backend : on invalide le cache
+        // pour que l'écran wallet et un futur retour ici affichent le vrai solde.
+        queryClient.invalidateQueries({ queryKey: PORTEFEUILLE_QUERY_KEY });
+      } else if (redirectUrl) {
+        // Le navigateur système s'ouvre pour le checkout Paydunya. On ne
+        // dépend jamais de sa fermeture "propre" pour savoir si le paiement a
+        // réussi (peu fiable, surtout sous Expo Go) : l'écran de confirmation
+        // vérifie le vrai statut via polling, indépendamment de comment on y
+        // atterrit.
+        await WebBrowser.openBrowserAsync(redirectUrl);
       }
+
       router.replace({
         pathname: "/ticket/confirmation",
-        params: { total: String(total), date, passengers },
+        params: { ticketId: billet.id },
       });
+    } catch (err) {
+      setError(formatApiError(err));
     } finally {
       setLoading(false);
     }
@@ -171,7 +208,7 @@ export default function PaymentScreen() {
                   </Text>
                   {method.id === "wallet" ? (
                     <Text style={{ fontSize: 12, color: colors.textGray }}>
-                      Solde: {formatFcfa(wallet.balance)}
+                      Solde: {formatFcfa(balance)}
                     </Text>
                   ) : (
                     <Text style={{ fontSize: 11, color: colors.textGray }}>via Paydunya</Text>

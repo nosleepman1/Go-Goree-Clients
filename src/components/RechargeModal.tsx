@@ -17,7 +17,8 @@ const METHODS = [
 interface RechargeModalProps {
   visible: boolean;
   onClose: () => void;
-  onConfirm: (amount: number, method: string) => void;
+  /** `methodId` : "wave" | "orange" | "yas" (mappé vers les modes Paydunya par l'appelant). */
+  onConfirm: (amount: number, methodId: string) => void;
   initialAmount?: number | null;
 }
 
@@ -31,8 +32,7 @@ export function RechargeModal({ visible, onClose, onConfirm, initialAmount }: Re
 
   function handleConfirm() {
     if (!amount) return;
-    const methodLabel = METHODS.find((m) => m.id === method)?.label ?? method;
-    onConfirm(amount, methodLabel);
+    onConfirm(amount, method);
     setAmount(null);
   }
 
