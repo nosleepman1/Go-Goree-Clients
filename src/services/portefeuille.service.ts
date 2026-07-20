@@ -1,7 +1,7 @@
 import { apiClient } from "@/api/client";
 import { endpoints } from "@/api/endpoints";
-import { unwrapResource } from "@/api/normalize";
-import { Portefeuille } from "@/types/wallet";
+import { LaravelPaginated, unwrapPaginated, unwrapResource } from "@/api/normalize";
+import { Portefeuille, MouvementPortefeuille } from "@/types/wallet";
 import { PaymentMode } from "@/types/billet";
 
 // Modes acceptés par POST /portefeuille/recharge : tout sauf PORTEFEUILLE
@@ -26,6 +26,13 @@ export const portefeuilleService = {
   async get(): Promise<Portefeuille> {
     const { data } = await apiClient.get<{ data: Portefeuille }>(endpoints.portefeuille.get);
     return unwrapResource(data);
+  },
+
+  async listMouvements(): Promise<MouvementPortefeuille[]> {
+    const { data } = await apiClient.get<LaravelPaginated<MouvementPortefeuille>>(
+      endpoints.portefeuille.mouvements
+    );
+    return unwrapPaginated(data);
   },
 
   async recharge(montant: number, paymentMode: RechargeMode): Promise<RechargeResult> {
