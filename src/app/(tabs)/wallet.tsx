@@ -12,12 +12,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
+import { useQueryClient } from "@tanstack/react-query";
 import { colors, gradients } from "@/constants/theme";
-import { usePortefeuille } from "@/hooks/usePortefeuille";
+import { usePortefeuille, useMouvements, MOUVEMENTS_QUERY_KEY } from "@/hooks/usePortefeuille";
 import { portefeuilleService, RechargeMode } from "@/services/portefeuille.service";
 import { formatFcfa } from "@/constants/trip";
 import { formatApiError } from "@/utils/apiError";
 import { RechargeModal } from "@/components/RechargeModal";
+import { MouvementPortefeuille } from "@/types/wallet";
 
 const QUICK_AMOUNTS = [2000, 5000, 10000, 20000];
 const RECHARGE_POLL_MS = 3000;
@@ -34,8 +36,89 @@ type PendingRecharge = {
   startedAt: number;
 };
 
+const TRANSACTION_LABELS: Record<string, string> = {
+  ACHAT_BILLET: "Achat de billet",
+  RECHARGE_PORTEFEUILLE: "Rechargement",
+  ABONNEMENT: "Abonnement résident",
+};
+
+function mouvementLabel(m: MouvementPortefeuille): string {
+  if (m.type_transaction && TRANSACTION_LABELS[m.type_transaction]) {
+    return TRANSACTION_LABELS[m.type_transaction];
+  }
+  return m.type === "RECHARGE" ? "Rechargement" : "Débit";
+}
+
+function formatMouvementDate(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const time = date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  if (date.toDateString() === now.toDateString()) return `Aujourd'hui, ${time}`;
+  return `${date.toLocaleDateString("fr-FR")}, ${time}`;
+}
+
+function MouvementRow({ mouvement, last }: { mouvement: MouvementPortefeuille; last: boolean }) {
+  const isRecharge = mouvement.type === "RECHARGE";
+  const isPending = mouvement.statut === "EN_ATTENTE";
+  const isRejected = mouvement.statut === "REJETE";
+  const amount = Number(mouvement.montant);
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: colors.border,
+      }}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: isRecharge ? "#DCFCE7" : colors.primaryTint,
+          alignItems: "center",
+          justifyContent: "center",
+          marginRight: 12,
+        }}
+      >
+        <Ionicons
+          name={isRecharge ? "arrow-down" : "boat"}
+          size={18}
+          color={isRecharge ? "#16A34A" : colors.primary}
+        />
+      </View>
+      <View style={{ flex: 1, marginRight: 12 }}>
+        <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textDark }}>
+          {mouvementLabel(mouvement)}
+        </Text>
+        <Text style={{ fontSize: 12, color: colors.textGray, marginTop: 2 }}>
+          {mouvement.mode ? `${mouvement.mode} • ` : ""}
+          {formatMouvementDate(mouvement.created_at)}
+          {isPending ? " • En attente" : isRejected ? " • Rejeté" : ""}
+        </Text>
+      </View>
+      <Text
+        style={{
+          fontSize: 14,
+          fontWeight: "800",
+          color: isRejected ? colors.textGray : isRecharge ? "#16A34A" : colors.primary,
+          textDecorationLine: isRejected ? "line-through" : "none",
+        }}
+      >
+        {isRecharge ? "+" : "-"}
+        {formatFcfa(amount)}
+      </Text>
+    </View>
+  );
+}
+
 export default function WalletScreen() {
   const { data: portefeuille, isLoading, isError, refetch, isRefetching } = usePortefeuille();
+  const { data: mouvements, isLoading: mouvementsLoading } = useMouvements();
+  const queryClient = useQueryClient();
   const [modalVisible, setModalVisible] = useState(false);
   const [presetAmount, setPresetAmount] = useState<number | null>(null);
   const [balanceHidden, setBalanceHidden] = useState(false);
@@ -69,10 +152,18 @@ export default function WalletScreen() {
     if (pending && balance !== null && balance !== pending.previousSolde) {
       setPending(null);
       setJustCredited(true);
+      // Un nouveau mouvement (recharge) est apparu : on rafraîchit l'historique.
+      queryClient.invalidateQueries({ queryKey: MOUVEMENTS_QUERY_KEY });
       const timer = setTimeout(() => setJustCredited(false), 6000);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [balance, pending]);
+
+  function refreshAll() {
+    refetch();
+    queryClient.invalidateQueries({ queryKey: MOUVEMENTS_QUERY_KEY });
+  }
 
   async function handleConfirmRecharge(amount: number, methodId: string) {
     if (rechargingRef.current) return;
@@ -173,7 +264,7 @@ export default function WalletScreen() {
       <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />
+          <RefreshControl refreshing={isRefetching} onRefresh={refreshAll} tintColor={colors.primary} />
         }
       >
         {isError ? (
@@ -311,14 +402,22 @@ export default function WalletScreen() {
           ))}
         </View>
 
-        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textDark, marginBottom: 4 }}>
+        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textDark, marginBottom: 12 }}>
           Dernières transactions
         </Text>
-        {/* Le backend n'expose pas encore l'historique des mouvements du
-            portefeuille (GET /portefeuille ne renvoie que le solde). */}
-        <Text style={{ fontSize: 14, color: colors.textGray, marginTop: 8 }}>
-          L'historique des transactions sera bientôt disponible.
-        </Text>
+        {mouvementsLoading ? (
+          <View style={{ paddingVertical: 20, alignItems: "center" }}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : !mouvements || mouvements.length === 0 ? (
+          <Text style={{ fontSize: 14, color: colors.textGray, marginTop: 8 }}>
+            Aucune transaction pour l'instant.
+          </Text>
+        ) : (
+          mouvements.map((m, i) => (
+            <MouvementRow key={m.id} mouvement={m} last={i === mouvements.length - 1} />
+          ))
+        )}
       </ScrollView>
 
       <RechargeModal
