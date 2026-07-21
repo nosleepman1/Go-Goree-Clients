@@ -97,4 +97,24 @@ export const authService = {
   async logout(): Promise<void> {
     await apiClient.post(endpoints.auth.logout);
   },
+
+  // Demande un code de réinitialisation à 6 chiffres par email. Le backend
+  // répond de façon identique que l'email existe ou non (anti-énumération).
+  async forgotPassword(email: string): Promise<void> {
+    await apiClient.post(endpoints.auth.forgotPassword, { email });
+  },
+
+  async resetPassword(payload: {
+    email: string;
+    code: string;
+    password: string;
+    passwordConfirmation: string;
+  }): Promise<void> {
+    await apiClient.post(endpoints.auth.resetPassword, {
+      email: payload.email,
+      token: payload.code, // le backend valide indifféremment code court / jeton long
+      mot_de_passe: payload.password,
+      mot_de_passe_confirmation: payload.passwordConfirmation,
+    });
+  },
 };
